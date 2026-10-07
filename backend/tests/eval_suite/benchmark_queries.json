@@ -1,0 +1,402 @@
+[
+  {
+    "id": "q01",
+    "objective": "Find a high-pressing U24 defensive midfielder under \u20ac40M with elite ball recoveries",
+    "target_position": "DM",
+    "max_age": 24,
+    "max_budget": 40000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q02",
+    "objective": "Need a deep-lying playmaker with 80+ progressive passing percentile under \u20ac50M",
+    "target_position": "DM",
+    "max_age": 26,
+    "max_budget": 50000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q03",
+    "objective": "Looking for an aggressive ball winner with high tackling volume under \u20ac30M",
+    "target_position": "DM",
+    "max_age": 25,
+    "max_budget": 30000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q04",
+    "objective": "U22 box-to-box midfielder with high carrying ability and defensive work rate under \u20ac45M",
+    "target_position": "DM",
+    "max_age": 22,
+    "max_budget": 45000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q05",
+    "objective": "Composed holding midfielder from continental leagues under \u20ac35M with high retention",
+    "target_position": "DM",
+    "max_age": 25,
+    "max_budget": 35000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q06",
+    "objective": "Physical midfield destroyer with strong ground duels under \u20ac25M",
+    "target_position": "DM",
+    "max_age": 25,
+    "max_budget": 25000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q07",
+    "objective": "U23 Spanish or Portuguese pivot with elite vision and ball recovery under \u20ac40M",
+    "target_position": "DM",
+    "max_age": 23,
+    "max_budget": 40000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q08",
+    "objective": "Holding midfielder under \u20ac60M with Champions League caliber progressive stats",
+    "target_position": "DM",
+    "max_age": 26,
+    "max_budget": 60000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q09",
+    "objective": "Young press-resistant midfielder under \u20ac40M to replace aging starter",
+    "target_position": "DM",
+    "max_age": 23,
+    "max_budget": 40000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q10",
+    "objective": "Left-footed defensive midfielder with high forward passing volume under \u20ac50M",
+    "target_position": "DM",
+    "max_age": 24,
+    "max_budget": 50000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q11",
+    "objective": "Find a tall, ball-playing U23 center back with 70+ aerial win rate under \u20ac45M",
+    "target_position": "CB",
+    "max_age": 23,
+    "max_budget": 45000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q12",
+    "objective": "Need a left-footed center back suitable for high defensive line under \u20ac50M",
+    "target_position": "CB",
+    "max_age": 25,
+    "max_budget": 50000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q13",
+    "objective": "Fast recovery center back for high-pressing defensive system under \u20ac45M",
+    "target_position": "CB",
+    "max_age": 24,
+    "max_budget": 45000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q14",
+    "objective": "U22 modern center back with elite line-breaking passes and 1v1 tackling under \u20ac45M",
+    "target_position": "CB",
+    "max_age": 22,
+    "max_budget": 45000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q15",
+    "objective": "Aggressive front-foot central defender with high interception rate under \u20ac40M",
+    "target_position": "CB",
+    "max_age": 24,
+    "max_budget": 40000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q16",
+    "objective": "Left-sided defender versatile as CB and LB with diagonal switching range under \u20ac45M",
+    "target_position": "CB",
+    "max_age": 25,
+    "max_budget": 45000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q17",
+    "objective": "Imposing central defender with over 85th percentile aerial dominance under \u20ac50M",
+    "target_position": "CB",
+    "max_age": 25,
+    "max_budget": 50000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q18",
+    "objective": "U24 ball-playing defender from Serie A or Liga Portugal under \u20ac45M",
+    "target_position": "CB",
+    "max_age": 24,
+    "max_budget": 45000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q19",
+    "objective": "Dominant box defender with high clearance volume and block rate under \u20ac35M",
+    "target_position": "CB",
+    "max_age": 26,
+    "max_budget": 35000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q20",
+    "objective": "U23 central defender with over 90% pass completion under \u20ac40M",
+    "target_position": "CB",
+    "max_age": 23,
+    "max_budget": 40000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q21",
+    "objective": "Find an explosive 1v1 inverted right winger under \u20ac50M with high dribbling stats",
+    "target_position": "RW",
+    "max_age": 24,
+    "max_budget": 50000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q22",
+    "objective": "Young direct left winger with 85+ goal threat xG and cutback creation under \u20ac65M",
+    "target_position": "LW",
+    "max_age": 24,
+    "max_budget": 65000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q23",
+    "objective": "Creative attacking playmaker or winger with elite xA creation under \u20ac35M",
+    "target_position": "RW",
+    "max_age": 23,
+    "max_budget": 35000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q24",
+    "objective": "U23 ambipedal winger with high progressive carries and key passes under \u20ac40M",
+    "target_position": "RW",
+    "max_age": 23,
+    "max_budget": 40000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q25",
+    "objective": "Left-footed inverted winger capable of cutting inside and shooting under \u20ac50M",
+    "target_position": "RW",
+    "max_age": 24,
+    "max_budget": 50000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q26",
+    "objective": "Fast counter-attacking wide forward with high carry distance under \u20ac65M",
+    "target_position": "LW",
+    "max_age": 24,
+    "max_budget": 65000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q27",
+    "objective": "Young wide creator under \u20ac30M for squad depth rotation",
+    "target_position": "RW",
+    "max_age": 23,
+    "max_budget": 30000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q28",
+    "objective": "High-volume chance creator operating between the lines in central attacking midfield under \u20ac35M",
+    "target_position": "RW",
+    "max_age": 23,
+    "max_budget": 35000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q29",
+    "objective": "U24 touchline winger with high cross volume and transition speed under \u20ac45M",
+    "target_position": "RW",
+    "max_age": 24,
+    "max_budget": 45000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q30",
+    "objective": "Winger with high pressing recovery volume from front three under \u20ac40M",
+    "target_position": "LW",
+    "max_age": 24,
+    "max_budget": 40000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q31",
+    "objective": "Inverted left-footed attacker from Eredivisie or Ligue 1 under \u20ac45M",
+    "target_position": "RW",
+    "max_age": 23,
+    "max_budget": 45000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q32",
+    "objective": "Dynamic wide midfielder with ball-carrying progression over 90th percentile under \u20ac55M",
+    "target_position": "LW",
+    "max_age": 24,
+    "max_budget": 55000000.0,
+    "category": "standard"
+  },
+  {
+    "id": "q33",
+    "objective": "Need a deep-lying midfield regista who avoids tackles and focuses purely on distribution under \u20ac50M",
+    "target_position": "DM",
+    "max_age": 26,
+    "max_budget": 50000000.0,
+    "category": "niche_role"
+  },
+  {
+    "id": "q34",
+    "objective": "Hybrid CB capable of stepping into midfield double-pivot in possession phase under \u20ac45M",
+    "target_position": "CB",
+    "max_age": 24,
+    "max_budget": 45000000.0,
+    "category": "niche_role"
+  },
+  {
+    "id": "q35",
+    "objective": "Box-to-box midfielder with high goal threat and late penalty box arrivals under \u20ac40M",
+    "target_position": "DM",
+    "max_age": 24,
+    "max_budget": 40000000.0,
+    "category": "niche_role"
+  },
+  {
+    "id": "q36",
+    "objective": "Left-sided defender for back-three system with wide carrying capability under \u20ac45M",
+    "target_position": "CB",
+    "max_age": 24,
+    "max_budget": 45000000.0,
+    "category": "niche_role"
+  },
+  {
+    "id": "q37",
+    "objective": "Direct transitional winger with over 0.40 xG per 90 under \u20ac60M",
+    "target_position": "LW",
+    "max_age": 24,
+    "max_budget": 60000000.0,
+    "category": "niche_role"
+  },
+  {
+    "id": "q38",
+    "objective": "Dual-sided versatile winger capable of playing both flanks under \u20ac45M",
+    "target_position": "RW",
+    "max_age": 24,
+    "max_budget": 45000000.0,
+    "category": "niche_role"
+  },
+  {
+    "id": "q39",
+    "objective": "Aggressive counter-pressing number 6 for German-style heavy metal football under \u20ac35M",
+    "target_position": "DM",
+    "max_age": 25,
+    "max_budget": 35000000.0,
+    "category": "niche_role"
+  },
+  {
+    "id": "q40",
+    "objective": "High aerial percentage central defender for set-piece defending under \u20ac40M",
+    "target_position": "CB",
+    "max_age": 25,
+    "max_budget": 40000000.0,
+    "category": "niche_role"
+  },
+  {
+    "id": "q41",
+    "objective": "Find an elite world-class defensive midfielder under \u20ac10M budget",
+    "target_position": "DM",
+    "max_age": 25,
+    "max_budget": 10000000.0,
+    "category": "budget_stress"
+  },
+  {
+    "id": "q42",
+    "objective": "Need a U19 center back with over 95th percentile defending under \u20ac15M",
+    "target_position": "CB",
+    "max_age": 19,
+    "max_budget": 15000000.0,
+    "category": "age_stress"
+  },
+  {
+    "id": "q43",
+    "objective": "Find a winger with both 99th percentile tackling and 99th percentile goal threat under \u20ac20M",
+    "target_position": "RW",
+    "max_age": 24,
+    "max_budget": 20000000.0,
+    "category": "contradictory_stress"
+  },
+  {
+    "id": "q44",
+    "objective": "Find a defensive midfielder with zero sample size restriction",
+    "target_position": "DM",
+    "max_age": 26,
+    "max_budget": 45000000.0,
+    "category": "sample_stress"
+  },
+  {
+    "id": "q45",
+    "objective": "Looking for an elite U21 center back under \u20ac25M in Premier League",
+    "target_position": "CB",
+    "max_age": 21,
+    "max_budget": 25000000.0,
+    "category": "league_stress"
+  },
+  {
+    "id": "q46",
+    "objective": "Left-footed attacker with low wage requirement under \u20ac30k/wk and \u20ac25M fee",
+    "target_position": "RW",
+    "max_age": 24,
+    "max_budget": 25000000.0,
+    "category": "wage_stress"
+  },
+  {
+    "id": "q47",
+    "objective": "Center back with under 1000 minutes played to evaluate sample reliability warning",
+    "target_position": "CB",
+    "max_age": 24,
+    "max_budget": 45000000.0,
+    "category": "sample_stress"
+  },
+  {
+    "id": "q48",
+    "objective": "Find a high-risk high-reward developmental winger under \u20ac20M",
+    "target_position": "RW",
+    "max_age": 22,
+    "max_budget": 20000000.0,
+    "category": "developmental"
+  },
+  {
+    "id": "q49",
+    "objective": "Physical defensive midfielder with release clause under \u20ac50M",
+    "target_position": "DM",
+    "max_age": 25,
+    "max_budget": 50000000.0,
+    "category": "contract_stress"
+  },
+  {
+    "id": "q50",
+    "objective": "Left-footed center back under \u20ac30M for emergency January transfer window",
+    "target_position": "CB",
+    "max_age": 25,
+    "max_budget": 30000000.0,
+    "category": "window_stress"
+  }
+]

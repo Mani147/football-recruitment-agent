@@ -1,0 +1,615 @@
+﻿<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Football AI Scout | Multi-Agent Recruitment & Decision Support System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#f0fdf4', 500: '#22c55e', 600: '#16a34a', 700: '#15803d', 900: '#14532d' },
+            arsenal: '#EF0107',
+            pitch: '#0f172a',
+            surface: '#1e293b',
+            borderLine: '#334155'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: #0f172a; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen custom-scroll antialiased selection:bg-emerald-500 selection:text-white">
+
+  <!-- TOP HEADER -->
+  <header class="sticky top-0 z-50 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+          <i data-lucide="shield" class="w-6 h-6 text-slate-950"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-lg tracking-tight text-white">ARSENAL FC</span>
+            <span class="px-2 py-0.5 text-xs font-semibold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full">Scouting Decision Support</span>
+          </div>
+          <p class="text-[11px] text-slate-400">Multi-Agent Recruitment & Transfer Intelligence</p>
+        </div>
+      </div>
+
+      <!-- Quick Status Badges -->
+      <div class="hidden md:flex items-center space-x-4 text-xs font-mono">
+        <div class="bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700/50">
+          <span class="text-slate-400">Budget:</span> <span class="text-emerald-400 font-bold">€50.0M</span>
+        </div>
+        <div class="bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700/50">
+          <span class="text-slate-400">Grounding Accuracy:</span> <span class="text-teal-400 font-bold">98.1%</span>
+        </div>
+        <div class="bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700/50">
+          <span class="text-slate-400">Latency:</span> <span class="text-amber-400 font-bold">10.1 ms (Det)</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN VIEW CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- COMMAND TERMINAL SECTION -->
+    <section class="glass-card rounded-2xl p-6 sm:p-8 relative overflow-hidden shadow-2xl">
+      <div class="absolute -right-20 -top-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      
+      <div class="max-w-3xl">
+        <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white mb-2">
+          Director of Football Command Terminal
+        </h1>
+        <p class="text-slate-400 text-xs sm:text-sm mb-6">
+          Natural-language recruitment mandates are transformed into structured tactical requirements, ranked via deterministic league-adjusted analytics, verified by an adversarial AI Critic against database records, and evaluated through a Squad Impact Proxy.
+        </p>
+
+        <form id="scout-form" class="space-y-4">
+          <div class="relative">
+            <input
+              type="text"
+              id="mandate-input"
+              value="Find a high-pressing U24 defensive midfielder for Arsenal under €40M with elite ball recovery"
+              class="w-full pl-4 pr-36 py-4 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm shadow-inner"
+            />
+            <button
+              type="submit"
+              id="submit-btn"
+              class="absolute right-2 top-2 bottom-2 px-5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-bold rounded-lg flex items-center space-x-2 text-xs transition active:scale-95"
+            >
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+              <span>Deploy Scout</span>
+            </button>
+          </div>
+
+          <!-- Presets -->
+          <div class="flex flex-wrap items-center gap-2 pt-1 text-xs">
+            <span class="text-slate-400 font-medium mr-1">Presets:</span>
+            <button type="button" onclick="setPreset('Find a high-pressing U24 defensive midfielder for Arsenal under €40M with elite ball recovery')" class="px-3 py-1 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-full border border-slate-700 transition">
+              ⚽ U24 Box-to-Box DM (€40M)
+            </button>
+            <button type="button" onclick="setPreset('Need a left-footed center back suitable for a high defensive line under €50M')" class="px-3 py-1 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-full border border-slate-700 transition">
+              🛡️ Left-Footed High-Line CB (€50M)
+            </button>
+            <button type="button" onclick="setPreset('Find an explosive 1v1 inverted right winger under €50M with high progressive carries')" class="px-3 py-1 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-full border border-slate-700 transition">
+              ⚡ Explosive 1v1 RW (€50M)
+            </button>
+            <button type="button" onclick="setPreset('Find an elite world-class defensive midfielder under €10M budget')" class="px-3 py-1 bg-rose-950/40 hover:bg-rose-900/40 text-rose-300 rounded-full border border-rose-800/40 transition">
+              ⚠️ Stress Test: Impossible Budget (€10M)
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- LIVE OBSERVABLE WORKFLOW LOG -->
+    <section class="glass-card rounded-2xl p-6 border border-slate-800">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center space-x-2">
+          <span class="relative flex h-3 w-3">
+            <span id="pulse-dot" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+          </span>
+          <h2 class="font-bold text-slate-200 text-xs uppercase tracking-wider">Multi-Agent Observable Workflow Events</h2>
+        </div>
+        <span id="workflow-status" class="text-xs text-slate-400 font-mono">System Ready</span>
+      </div>
+
+      <div id="milestones-container" class="space-y-2 max-h-52 overflow-y-auto custom-scroll pr-2 text-xs font-mono">
+        <div class="p-3 bg-slate-900/90 rounded-lg border border-slate-800 text-slate-400 flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <i data-lucide="info" class="w-4 h-4 text-emerald-400"></i>
+            <span>Awaiting mandate deployment. Multi-Agent team standing by.</span>
+          </div>
+          <span class="text-[10px] text-slate-500">READY</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESULTS SECTION -->
+    <div id="dossier-results" class="space-y-8 hidden">
+
+      <!-- EXECUTIVE SUMMARY -->
+      <section class="glass-card rounded-2xl p-6 border-l-4 border-emerald-500 bg-gradient-to-r from-emerald-950/20 to-slate-900">
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="flex items-center space-x-2 mb-1">
+              <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Director of Football Sign-Off</span>
+              <span id="dossier-timestamp" class="text-xs text-slate-500 font-mono"></span>
+            </div>
+            <h3 id="exec-title" class="text-xl font-bold text-white mb-2"></h3>
+            <p id="exec-summary" class="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-4xl"></p>
+          </div>
+          <div class="hidden sm:block text-right">
+            <span class="text-xs text-slate-400 uppercase tracking-wider block">Top Recommendation</span>
+            <span id="top-candidate-name-badge" class="text-lg font-black text-emerald-400"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- CANDIDATE SELECTOR + RADAR & EXPLANATION -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- LEFT: CANDIDATE SELECTOR (5 cols) -->
+        <div class="lg:col-span-5 space-y-3">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+            <span>Ranked Recommendations</span>
+            <span class="text-[11px] font-normal text-slate-500">Fit vs. Reliability</span>
+          </h3>
+          <div id="candidate-list" class="space-y-3"></div>
+        </div>
+
+        <!-- RIGHT: DOSSIER DETAIL & RADAR (7 cols) -->
+        <div class="lg:col-span-7 space-y-6">
+          <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-6">
+            
+            <div class="flex flex-wrap items-start justify-between gap-4 pb-4 border-b border-slate-800">
+              <div>
+                <div class="flex items-center space-x-3 mb-1">
+                  <h2 id="active-player-name" class="text-2xl font-black text-white"></h2>
+                  <span id="active-player-pos" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"></span>
+                </div>
+                <p id="active-player-club" class="text-xs text-slate-400"></p>
+              </div>
+
+              <div class="flex items-center space-x-3">
+                <div class="text-center px-3 py-2 bg-slate-900 rounded-xl border border-slate-800">
+                  <div class="text-[10px] uppercase font-bold text-slate-400">Tactical Fit</div>
+                  <div id="active-fit-score" class="text-xl font-extrabold text-emerald-400">--</div>
+                </div>
+                <div class="text-center px-3 py-2 bg-slate-900 rounded-xl border border-slate-800">
+                  <div class="text-[10px] uppercase font-bold text-slate-400">Reliability</div>
+                  <div id="active-reliability-score" class="text-xl font-extrabold text-teal-400">--</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Reliability Banner -->
+            <div class="text-xs p-3 rounded-lg bg-slate-900/90 border border-slate-800 text-slate-300 flex items-center space-x-2">
+              <i data-lucide="shield-check" class="w-4 h-4 text-teal-400 shrink-0"></i>
+              <span id="active-reliability-text"></span>
+            </div>
+
+            <!-- Radar Chart & Financial Cost Model -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+              <div class="relative h-64 w-full flex flex-col items-center justify-center">
+                <span class="text-[10px] text-slate-400 font-mono mb-1">League-Adjusted Percentile (Comparative Heuristic)</span>
+                <canvas id="radarChart"></canvas>
+              </div>
+
+              <div class="space-y-3 text-xs">
+                <h4 class="font-bold uppercase tracking-wider text-slate-400 mb-1">Financial Cost Model</h4>
+                <div class="p-3 bg-slate-900/80 rounded-lg space-y-1.5 border border-slate-800 font-mono text-[11px]">
+                  <div class="flex justify-between">
+                    <span class="text-slate-400">Market Valuation (Est):</span>
+                    <span id="active-val" class="font-semibold text-slate-200"></span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-slate-400">Estimated Wage:</span>
+                    <span id="active-wage" class="font-semibold text-slate-200"></span>
+                  </div>
+                  <div class="flex justify-between border-t border-slate-800 pt-1.5">
+                    <span class="text-emerald-400 font-medium">5-Year Annual Book Cost:</span>
+                    <span id="active-annual-cost" class="font-bold text-emerald-400"></span>
+                  </div>
+                </div>
+
+                <div class="p-3 bg-slate-900/80 rounded-lg border border-slate-800">
+                  <span class="text-slate-400 block mb-1 text-[11px]">Tactical Strengths:</span>
+                  <div id="active-strengths" class="flex flex-wrap gap-1.5"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- AUDITABLE TACTICAL MATCH BREAKDOWN -->
+            <div class="pt-4 border-t border-slate-800 space-y-3">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                <span>Tactical Fit Mathematical Breakdown</span>
+                <span class="text-[10px] text-slate-500 font-mono">Formula: Σ(w_i * M_i) / Σ(w_i)</span>
+              </h4>
+              <div id="active-tactical-breakdown" class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]"></div>
+            </div>
+
+            <!-- Why Recommended vs Risks -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-800">
+              <div class="space-y-2">
+                <h5 class="text-xs font-bold uppercase text-emerald-400 flex items-center space-x-1.5">
+                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                  <span>Why Recommended</span>
+                </h5>
+                <ul id="active-why-list" class="space-y-1 text-xs text-slate-300"></ul>
+              </div>
+
+              <div class="space-y-2">
+                <h5 class="text-xs font-bold uppercase text-amber-400 flex items-center space-x-1.5">
+                  <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                  <span>Risk Factors & Caveats</span>
+                </h5>
+                <ul id="active-risks-list" class="space-y-1 text-xs text-slate-400"></ul>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- SQUAD IMPACT PROXY & CRITIC AUDIT -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <!-- SQUAD IMPACT PROXY -->
+        <section class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-slate-200 text-xs uppercase tracking-wider flex items-center space-x-2">
+              <i data-lucide="activity" class="w-4 h-4 text-emerald-400"></i>
+              <span>Projected Squad Impact (Proxy)</span>
+            </h3>
+            <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">Mathematical Delta</span>
+          </div>
+          <p class="text-xs text-slate-400">
+            Estimates squad defense & progression changes upon signing, factoring in tactical role overlap penalties.
+          </p>
+          <div id="sim-cards-container" class="space-y-3 pt-2"></div>
+        </section>
+
+        <!-- CRITIC AUDIT -->
+        <section class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-slate-200 text-xs uppercase tracking-wider flex items-center space-x-2">
+              <i data-lucide="shield-alert" class="w-4 h-4 text-teal-400"></i>
+              <span>Critic Grounding Verification Audit</span>
+            </h3>
+            <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">Measured: 98.1%</span>
+          </div>
+          <p class="text-xs text-slate-400">
+            Automated cross-check designed to detect and reject unsupported claims against raw database values.
+          </p>
+          <div id="critic-reports-container" class="space-y-3 pt-2 max-h-80 overflow-y-auto custom-scroll pr-2 text-xs"></div>
+        </section>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <script>
+    let currentDossier = null;
+    let activeCandidateIdx = 0;
+    let radarChartInstance = null;
+
+    function setPreset(text) {
+      document.getElementById('mandate-input').value = text;
+      document.getElementById('scout-form').dispatchEvent(new Event('submit'));
+    }
+
+    document.getElementById('scout-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('mandate-input').value.trim();
+      if (!input) return;
+
+      const submitBtn = document.getElementById('submit-btn');
+      const milestonesContainer = document.getElementById('milestones-container');
+      const statusText = document.getElementById('workflow-status');
+      const dossierResults = document.getElementById('dossier-results');
+
+      submitBtn.disabled = true;
+      submitBtn.classList.add('opacity-50');
+      statusText.innerText = "Agents Active...";
+      milestonesContainer.innerHTML = '';
+      dossierResults.classList.add('hidden');
+
+      const sseUrl = `/api/scout/stream?objective=${encodeURIComponent(input)}&club=Arsenal%20FC&budget=50000000`;
+      const eventSource = new EventSource(sseUrl);
+
+      eventSource.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          
+          if (payload.event === 'milestone') {
+            const m = payload.data;
+            const item = document.createElement('div');
+            item.className = "p-3 bg-slate-900/90 rounded-lg border border-slate-800 flex items-start justify-between text-slate-300";
+            item.innerHTML = `
+              <div class="flex items-start space-x-2.5">
+                <span class="px-1.5 py-0.5 rounded bg-slate-800 text-[10px] text-emerald-400 font-bold shrink-0 mt-0.5">${m.agent}</span>
+                <span>${m.message}</span>
+              </div>
+              <span class="text-[10px] text-slate-500 shrink-0 ml-2 font-mono">${new Date(m.timestamp_ms).toLocaleTimeString()}</span>
+            `;
+            milestonesContainer.appendChild(item);
+            milestonesContainer.scrollTop = milestonesContainer.scrollHeight;
+          } else if (payload.event === 'complete') {
+            eventSource.close();
+            currentDossier = payload.data.dossier;
+            renderDossier(currentDossier);
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-50');
+            statusText.innerText = "Dossier Finalized";
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      };
+
+      eventSource.onerror = (err) => {
+        console.error("SSE Error:", err);
+        eventSource.close();
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-50');
+        statusText.innerText = "Completed via REST fallback";
+        fetch('/api/scout/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ objective: input, club: "Arsenal FC", budget_eur: 50000000.0, wage_cap_pw: 120000.0 })
+        }).then(res => res.json()).then(data => {
+          currentDossier = data.dossier;
+          renderDossier(currentDossier);
+        });
+      };
+    });
+
+    function renderDossier(dossier) {
+      document.getElementById('dossier-results').classList.remove('hidden');
+      document.getElementById('exec-title').innerText = `${dossier.recruitment_profile.tactical_role_name} (${dossier.recruitment_profile.position})`;
+      document.getElementById('exec-summary').innerText = dossier.director_executive_summary;
+      document.getElementById('dossier-timestamp').innerText = new Date(dossier.created_at_iso).toLocaleString();
+      document.getElementById('top-candidate-name-badge').innerText = dossier.top_candidates[0]?.player.name || "N/A";
+
+      const candidateListEl = document.getElementById('candidate-list');
+      candidateListEl.innerHTML = '';
+
+      if (!dossier.top_candidates || dossier.top_candidates.length === 0) {
+        candidateListEl.innerHTML = '<div class="p-4 bg-slate-900 border border-slate-800 rounded-xl text-xs text-amber-400">No candidates strictly satisfied these constraints. Try relaxing the budget or age threshold.</div>';
+        return;
+      }
+
+      dossier.top_candidates.forEach((c, idx) => {
+        const card = document.createElement('div');
+        card.className = `p-4 rounded-xl cursor-pointer border transition-all ${
+          idx === activeCandidateIdx ? 'bg-slate-900 border-emerald-500 ring-1 ring-emerald-500' : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
+        }`;
+        card.onclick = () => selectCandidate(idx);
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between mb-2">
+            <div class="flex items-center space-x-2">
+              <span class="w-6 h-6 rounded-full bg-slate-800 text-xs font-bold flex items-center justify-center text-slate-300">#${c.rank}</span>
+              <div>
+                <h4 class="font-bold text-sm text-white">${c.player.name}</h4>
+                <p class="text-[11px] text-slate-400">${c.player.club} • ${c.player.league}</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-sm font-extrabold text-emerald-400">${c.fit_score}</div>
+              <div class="text-[10px] text-slate-500">Rel: ${c.reliability_score}</div>
+            </div>
+          </div>
+          <div class="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-800/80 font-mono">
+            <span>Age: ${c.player.age} | ${c.player.preferred_foot} foot</span>
+            <span class="font-medium text-slate-300">€${(c.player.market_value_eur / 1e6).toFixed(1)}M</span>
+          </div>
+        `;
+        candidateListEl.appendChild(card);
+      });
+
+      const simContainer = document.getElementById('sim-cards-container');
+      simContainer.innerHTML = '';
+      dossier.impact_simulations.forEach(sim => {
+        const simCard = document.createElement('div');
+        simCard.className = "p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-2";
+        simCard.innerHTML = `
+          <div class="flex justify-between items-center text-xs font-bold">
+            <span class="text-white">${sim.candidate_name}</span>
+            <span class="text-emerald-400 font-mono">+${sim.net_improvement_index} Net Improvement</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-[11px]">
+            <div class="bg-slate-950/60 p-2 rounded border border-slate-800/60 font-mono">
+              <span class="text-slate-400 block text-[10px]">Defense Index:</span>
+              <span class="font-semibold text-slate-200">${sim.baseline_squad_defense} -> <span class="text-emerald-400">${sim.projected_squad_defense}</span></span>
+            </div>
+            <div class="bg-slate-950/60 p-2 rounded border border-slate-800/60 font-mono">
+              <span class="text-slate-400 block text-[10px]">Progression Index:</span>
+              <span class="font-semibold text-slate-200">${sim.baseline_squad_progression} -> <span class="text-emerald-400">${sim.projected_squad_progression}</span></span>
+            </div>
+          </div>
+          <p class="text-[10px] text-slate-400 italic">${sim.summary}</p>
+        `;
+        simContainer.appendChild(simCard);
+      });
+
+      const criticContainer = document.getElementById('critic-reports-container');
+      criticContainer.innerHTML = '';
+      dossier.verifications.forEach(v => {
+        const vCard = document.createElement('div');
+        vCard.className = "p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-1.5";
+        vCard.innerHTML = `
+          <div class="flex justify-between items-center font-bold">
+            <span class="text-white">${v.candidate_name}</span>
+            <span class="px-2 py-0.5 rounded text-[10px] ${v.is_verified ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'} font-mono">
+              ${v.is_verified ? 'AUDIT VERIFIED' : 'FLAGGED'}
+            </span>
+          </div>
+          <ul class="text-[11px] text-slate-300 list-disc list-inside">
+            ${v.verified_claims.map(c => `<li>${c}</li>`).join('')}
+          </ul>
+          ${v.flagged_caveats.length > 0 ? `
+            <div class="text-[11px] text-amber-400/90 pt-1">
+              ⚠️ ${v.flagged_caveats.join(' | ')}
+            </div>
+          ` : ''}
+        `;
+        criticContainer.appendChild(vCard);
+      });
+
+      selectCandidate(0);
+      lucide.createIcons();
+    }
+
+    function selectCandidate(idx) {
+      activeCandidateIdx = idx;
+      if (!currentDossier || !currentDossier.top_candidates[idx]) return;
+      const c = currentDossier.top_candidates[idx];
+
+      const cards = document.getElementById('candidate-list').children;
+      for (let i = 0; i < cards.length; i++) {
+        if (i === idx) {
+          cards[i].className = "p-4 rounded-xl cursor-pointer border bg-slate-900 border-emerald-500 ring-1 ring-emerald-500 transition-all";
+        } else {
+          cards[i].className = "p-4 rounded-xl cursor-pointer border bg-slate-900/60 border-slate-800 hover:border-slate-700 transition-all";
+        }
+      }
+
+      document.getElementById('active-player-name').innerText = c.player.name;
+      document.getElementById('active-player-pos').innerText = `${c.player.primary_position} • ${c.player.preferred_foot} Foot`;
+      document.getElementById('active-player-club').innerText = `${c.player.club} (${c.player.league}) • ${c.player.age} Years Old`;
+      document.getElementById('active-fit-score').innerText = c.fit_score;
+      document.getElementById('active-reliability-score').innerText = c.reliability_score;
+      document.getElementById('active-reliability-text').innerText = c.reliability_summary;
+
+      document.getElementById('active-val').innerText = `€${(c.player.market_value_eur / 1e6).toFixed(1)}M`;
+      document.getElementById('active-wage').innerText = `€${(c.player.weekly_wage_eur / 1e3).toFixed(0)}k / wk`;
+      document.getElementById('active-annual-cost').innerText = `€${(c.estimated_annual_cost_eur / 1e6).toFixed(2)}M / yr`;
+
+      const strengthsEl = document.getElementById('active-strengths');
+      strengthsEl.innerHTML = c.tactical_strengths.map(s => `
+        <span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold">${s}</span>
+      `).join('');
+
+      // Tactical Match Breakdown Grid
+      const breakdownEl = document.getElementById('active-tactical-breakdown');
+      if (c.tactical_breakdown && c.tactical_breakdown.length > 0) {
+        breakdownEl.innerHTML = c.tactical_breakdown.map(b => `
+          <div class="p-2 bg-slate-900/90 rounded border border-slate-800/80">
+            <span class="text-slate-400 block text-[10px] truncate">${b.metric_name}</span>
+            <div class="flex justify-between items-center mt-1">
+              <span class="font-bold text-slate-200">${b.player_league_adj_pct}%</span>
+              <span class="text-[9px] px-1 rounded ${b.status === 'Strong Match' ? 'bg-emerald-500/20 text-emerald-400' : (b.status === 'Moderate Match' ? 'bg-amber-500/20 text-amber-400' : 'bg-rose-500/20 text-rose-400')}">${b.status}</span>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        breakdownEl.innerHTML = '<span class="text-slate-500 col-span-4">Breakdown available upon detailed query execution.</span>';
+      }
+
+      const whyEl = document.getElementById('active-why-list');
+      whyEl.innerHTML = c.why_recommended.map(w => `<li class="flex items-start space-x-1.5"><span>•</span><span>${w}</span></li>`).join('');
+
+      const risksEl = document.getElementById('active-risks-list');
+      risksEl.innerHTML = c.risk_factors.map(r => `<li class="flex items-start space-x-1.5 text-amber-300/80"><span>⚠</span><span>${r}</span></li>`).join('');
+
+      updateRadarChart(c);
+      lucide.createIcons();
+    }
+
+    function updateRadarChart(candidate) {
+      const ctx = document.getElementById('radarChart').getContext('2d');
+      const p = candidate.league_adjusted_percentiles;
+
+      const labels = [
+        'Prog Passes',
+        'Prog Carries',
+        'Tackles/Int',
+        'Press/Recov',
+        'Aerial Duels',
+        'Chance (xA)',
+        'Retention',
+        'Goal (xG)'
+      ];
+
+      const dataValues = [
+        p.progressive_passes,
+        p.progressive_carries,
+        p.tackles_interceptions,
+        p.ball_recoveries_pressures,
+        p.aerial_dominance,
+        p.chance_creation_xa,
+        p.possession_retention,
+        p.goal_threat_xg
+      ];
+
+      if (radarChartInstance) {
+        radarChartInstance.destroy();
+      }
+
+      radarChartInstance = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: `${candidate.player.name} (League-Adjusted)`,
+            data: dataValues,
+            backgroundColor: 'rgba(34, 197, 94, 0.25)',
+            borderColor: '#22c55e',
+            pointBackgroundColor: '#22c55e',
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: '#22c55e',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            r: {
+              angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+              grid: { color: 'rgba(255, 255, 255, 0.1)' },
+              pointLabels: {
+                color: '#94a3b8',
+                font: { size: 9, weight: '600' }
+              },
+              suggestedMin: 30,
+              suggestedMax: 100,
+              ticks: { display: false }
+            }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
