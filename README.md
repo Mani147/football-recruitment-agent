@@ -1,4 +1,4 @@
-﻿# ⚽ Football AI Scout: Multi-Agent Recruitment & Decision-Support System
+# ⚽ Football AI Scout: Multi-Agent Recruitment & Decision-Support System
 
 A multi-agent AI decision-support platform that converts natural-language recruitment objectives into structured tactical requirements, retrieves and ranks players using deterministic statistical and semantic analysis, evaluates financial feasibility, verifies recommendations against source data, and estimates squad-level impact through a mathematical proxy model.
 
@@ -77,38 +77,56 @@ A multi-agent AI decision-support platform that converts natural-language recrui
 ##  Mathematical Formulations
 
 ### 1. Tactical Fit Score ($S_{\text{tactical}}$)
-$$S_{\text{tactical}} = \frac{\sum_{i=1}^n w_i \times M(p_i, t_i)}{\sum_{i=1}^n w_i} \times 100$$
-where $M(p_i, t_i) = 1.0$ if $p_i \ge t_i$ else $\max\left(0, 1.0 - \frac{t_i - p_i}{100}\right)$.
+
+$$
+S_{\text{tactical}} = \frac{\sum_{i=1}^n w_i \cdot M(p_i, t_i)}{\sum_{i=1}^n w_i} \times 100
+$$
+
+where the metric match function $M(p_i, t_i)$ is defined as:
+
+$$
+M(p_i, t_i) = \begin{cases} 1.0 & \text{if } p_i \ge t_i \\ \max\left(0,\, 1.0 - \frac{t_i - p_i}{100}\right) & \text{otherwise} \end{cases}
+$$
+
 * Exposed in the UI with metric-by-metric breakdown (`Progressive Passing`, `Ball Recovery`, `Tackles`, etc.).
 
 ### 2. Reliability Score ($R \in [0, 100]$)
-Decoupled from player quality to measure data sample sufficiency and variance:
-R=0.45⋅R 
-minutes
-​
- +0.25⋅R 
-consistency
-​
- +0.20⋅R 
-completeness
-​
- +0.10⋅R 
-league_tier
-​
 
-* $R_{\text{minutes}} = \min\left(1.0, \frac{\text{Minutes Played}}{1800}\right) \times 100$
-* Explicitly separates quality from confidence (e.g. `Fit: 91/100 | Reliability: 68/100 (Sample Warning: 940 mins)`).
+Decoupled from player quality to measure data sample sufficiency and variance:
+
+$$
+R = 0.45 \cdot R_{\text{minutes}} + 0.25 \cdot R_{\text{consistency}} + 0.20 \cdot R_{\text{completeness}} + 0.10 \cdot R_{\text{league\_tier}}
+$$
+
+where sample size exposure is scaled by a 1,800-minute benchmark:
+
+$$
+R_{\text{minutes}} = \min\left(1.0,\, \frac{\text{Minutes Played}}{1800}\right) \times 100
+$$
+
+* Explicitly separates quality from confidence (e.g., `Fit: 91/100 | Reliability: 68/100 (Sample Warning: 940 mins)`).
 
 ### 3. League Strength Normalization Heuristic
+
 Comparative normalization factor (heuristic multiplier, not an absolute predictive forecast):
-$$\text{Metric}_{\text{norm}} = \text{Metric}_{\text{raw}} \times \lambda_{\text{league}}$$
+
+$$
+\text{Metric}_{\text{norm}} = \text{Metric}_{\text{raw}} \times \lambda_{\text{league}}
+$$
+
 *(Premier League: 1.00, La Liga / Bundesliga: 0.93, Serie A: 0.90, Ligue 1: 0.89, Eredivisie: 0.82, Liga Portugal: 0.81)*
 
 ### 4. Projected Squad Impact Proxy
-$$\text{Squad Metric}_{\text{projected}} = \text{Squad Metric}_{\text{baseline}} + \Delta_{\text{player}} - \text{Overlap Penalty}$$
+
+$$
+\text{Squad Metric}_{\text{projected}} = \text{Squad Metric}_{\text{baseline}} + \Delta_{\text{player}} - \text{Overlap Penalty}
+$$
 
 ### 5. Financial Cost Model
-$$\text{Annual Book Cost} = \frac{\text{Transfer Fee}}{\text{Contract Length (Years)}} + \text{Annual Gross Salary}$$
+
+$$
+\text{Annual Book Cost} = \frac{\text{Transfer Fee}}{\min(\text{Contract Years},\, 5)} + \text{Annual Gross Salary}
+$$
 
 ---
 
