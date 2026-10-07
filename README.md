@@ -4,7 +4,7 @@ A multi-agent AI decision-support platform that converts natural-language recrui
 
 ---
 
-## 🌟 Core Architectural Philosophy
+##  Core Architectural Philosophy
 
 ```
                               USER / CHIEF SCOUT
@@ -74,7 +74,7 @@ A multi-agent AI decision-support platform that converts natural-language recrui
 
 ---
 
-## 📐 Mathematical Formulations
+##  Mathematical Formulations
 
 ### 1. Tactical Fit Score ($S_{\text{tactical}}$)
 $$S_{\text{tactical}} = \frac{\sum_{i=1}^n w_i \times M(p_i, t_i)}{\sum_{i=1}^n w_i} \times 100$$
@@ -100,7 +100,7 @@ $$\text{Annual Book Cost} = \frac{\text{Transfer Fee}}{\text{Contract Length (Ye
 
 ---
 
-## 📊 Expanded 50-Scenario Quantitative Benchmark Suite
+##  Expanded 50-Scenario Quantitative Benchmark Suite
 
 Evaluated across **50 standardized recruitment scenarios** across 4 categories:
 
@@ -119,7 +119,7 @@ Evaluated across **50 standardized recruitment scenarios** across 4 categories:
 
 ---
 
-## 🚀 Quickstart & Running Instructions
+##  Quickstart & Running Instructions
 
 ### 1. Install Dependencies
 ```bash
