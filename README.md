@@ -83,7 +83,19 @@ where $M(p_i, t_i) = 1.0$ if $p_i \ge t_i$ else $\max\left(0, 1.0 - \frac{t_i - 
 
 ### 2. Reliability Score ($R \in [0, 100]$)
 Decoupled from player quality to measure data sample sufficiency and variance:
-$$R = 0.45 \cdot R_{\text{minutes}} + 0.25 \cdot R_{\text{consistency}} + 0.20 \cdot R_{\text{completeness}} + 0.10 \cdot R_{\text{league\_tier}}$$
+R=0.45⋅R 
+minutes
+​
+ +0.25⋅R 
+consistency
+​
+ +0.20⋅R 
+completeness
+​
+ +0.10⋅R 
+league_tier
+​
+
 * $R_{\text{minutes}} = \min\left(1.0, \frac{\text{Minutes Played}}{1800}\right) \times 100$
 * Explicitly separates quality from confidence (e.g. `Fit: 91/100 | Reliability: 68/100 (Sample Warning: 940 mins)`).
 
