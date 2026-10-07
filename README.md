@@ -74,7 +74,7 @@ A multi-agent AI decision-support platform that converts natural-language recrui
 
 ---
 
-##  Mathematical Formulations
+## 📐 Mathematical Formulations
 
 ### 1. Tactical Fit Score ($S_{\text{tactical}}$)
 
@@ -85,7 +85,7 @@ $$
 where the metric match function $M(p_i, t_i)$ is defined as:
 
 $$
-M(p_i, t_i) = \begin{cases} 1.0 & \text{if } p_i \ge t_i \\ \max\left(0,\, 1.0 - \frac{t_i - p_i}{100}\right) & \text{otherwise} \end{cases}
+M(p_i, t_i) = \begin{cases} 1.0 & \text{if } p_i \ge t_i \\ \max\left(0, 1.0 - \frac{t_i - p_i}{100}\right) & \text{otherwise} \end{cases}
 $$
 
 * Exposed in the UI with metric-by-metric breakdown (`Progressive Passing`, `Ball Recovery`, `Tackles`, etc.).
@@ -95,13 +95,13 @@ $$
 Decoupled from player quality to measure data sample sufficiency and variance:
 
 $$
-R = 0.45 \cdot R_{\text{minutes}} + 0.25 \cdot R_{\text{consistency}} + 0.20 \cdot R_{\text{completeness}} + 0.10 \cdot R_{\text{league\_tier}}
+R = 0.45 \cdot R_{\text{minutes}} + 0.25 \cdot R_{\text{consistency}} + 0.20 \cdot R_{\text{completeness}} + 0.10 \cdot R_{\text{league-tier}}
 $$
 
 where sample size exposure is scaled by a 1,800-minute benchmark:
 
 $$
-R_{\text{minutes}} = \min\left(1.0,\, \frac{\text{Minutes Played}}{1800}\right) \times 100
+R_{\text{minutes}} = \min\left(1.0, \frac{\text{Minutes Played}}{1800}\right) \times 100
 $$
 
 * Explicitly separates quality from confidence (e.g., `Fit: 91/100 | Reliability: 68/100 (Sample Warning: 940 mins)`).
@@ -125,8 +125,9 @@ $$
 ### 5. Financial Cost Model
 
 $$
-\text{Annual Book Cost} = \frac{\text{Transfer Fee}}{\min(\text{Contract Years},\, 5)} + \text{Annual Gross Salary}
+\text{Annual Book Cost} = \frac{\text{Transfer Fee}}{\min(\text{Contract Years}, 5)} + \text{Annual Gross Salary}
 $$
+
 
 ---
 
