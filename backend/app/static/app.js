@@ -40,7 +40,12 @@ function briefItems(p) {
     ['Preferred foot',p.preferred_foot || 'No preference']];
 }
 async function postJSON(url, body) {
-  const response = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  let response;
+  try {
+    response = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  } catch {
+    throw new Error('Cannot reach the recruitment service. If you are running this app locally, restart the server with python -m backend.app.main, then try again. Your brief has been kept.');
+  }
   let data;
   try { data = await response.json(); } catch { throw new Error('The server returned an unreadable response. Please try again.'); }
   if (!response.ok) {
