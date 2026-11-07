@@ -16,7 +16,7 @@ from backend.app.agents.orchestrator import director_orchestrator
 from backend.app.data import real_data
 
 # Demo mode is an explicit test fixture; the public workspace uses real season data.
-DATASET_MODE = os.getenv('TOUCHLINE_DATASET', 'statsbomb')
+DATASET_MODE = os.getenv('TOUCHLINE_DATASET', 'openplay')
 
 @asynccontextmanager
 async def lifespan(app):
@@ -55,10 +55,15 @@ def serve_comparison():
 def comparison_players(
     group: Literal['goalkeepers','fullbacks','centrebacks','midfielders','wingers','strikers'] = 'midfielders',
     include_secondary: bool = True,
-    min_minutes: int = Query(900,ge=0,le=3420),
+    min_minutes: int = Query(900,ge=0,le=10000),
+    competition: str | None = None,
+    season: str | None = None,
 ):
     if DATASET_MODE != 'demo':
-        return real_data.comparison(group,include_secondary,min_minutes)
+        try:
+            return real_data.comparison(group,include_secondary,min_minutes,competition,season)
+        except ValueError as exc:
+            raise HTTPException(422,str(exc)) from exc
     from backend.app.analytics.comparison import POSITION_COMPARISON_GROUPS, matches_comparison_group
     from backend.app.analytics.league_adjustment import adjust_percentiles_for_league
     from backend.app.analytics.reliability import calculate_reliability_score
@@ -85,6 +90,8 @@ class ScoutRequest(BaseModel):
     age_max: int | None = Field(default=None, ge=18, le=60)
     min_minutes: int = Field(default=800, ge=0, le=10000)
     preferred_foot: Literal["Left", "Right", "Either"] | None = None
+    competition: str | None = Field(default=None,max_length=10)
+    season: str | None = Field(default=None,max_length=10)
 
 def effective_profile(req: ScoutRequest):
     try:
@@ -105,8 +112,9 @@ def preview_profile(req: ScoutRequest):
     if DATASET_MODE != 'demo':
         try:
             profile, group = real_data.interpret(req)
+            meta = real_data.metadata(req.competition,req.season)
             return {'profile':real_data.profile_payload(profile,group),'needs_clarification':not group,
-                    'notice':'Historical performance-only search. Age, foot, fees and wages cannot be verified. Minimum 900 regulation minutes.'}
+                    'metadata':meta,'notice':'Season performance-only search. Current age, foot, fees and wages cannot be verified. Minimum 900 source minutes.'}
         except ValueError as exc:
             raise HTTPException(422,str(exc)) from exc
     profile = effective_profile(req)
@@ -114,22 +122,30 @@ def preview_profile(req: ScoutRequest):
             "notice": "Only the displayed constraints are enforced. Text is interpreted by rules; review before searching."}
 
 @app.get("/api/dataset")
-def dataset_metadata():
-    return real_data.metadata() if DATASET_MODE != 'demo' else {'mode':'illustrative_demo'}
+def dataset_metadata(competition: str | None = None,season: str | None = None):
+    try:
+        return real_data.metadata(competition,season) if DATASET_MODE != 'demo' else {'mode':'illustrative_demo'}
+    except ValueError as exc:
+        raise HTTPException(422,str(exc)) from exc
 
 
 @app.get("/api/health")
 def health_check():
     if DATASET_MODE != 'demo':
+        meta=real_data.metadata()
         return {'status':'ok','project':settings.PROJECT_NAME,'version':'3.0.0','player_count':len(real_data.snapshot()['players']),
-                'mode':'statsbomb','season':'2015/16','matches':380}
+                'mode':meta.get('mode','statsbomb'),'season':meta['season'],'matches':meta['match_count'],
+                'available_seasons':meta.get('seasons',[meta['season']])}
     return {"status": "ok", "project": settings.PROJECT_NAME, "version": "2.0.0", "player_count": len(db.get_all_players()), "mode": "illustrative_demo"}
 
 @app.get("/api/players")
-def list_players():
+def list_players(competition: str | None = None,season: str | None = None):
     if DATASET_MODE != 'demo':
-        players=real_data.snapshot()['players']
-        return {'count':len(players),'players':players,'metadata':real_data.metadata()}
+        try:
+            players=real_data.selected_players(competition,season)
+            return {'count':len(players),'players':players,'metadata':real_data.metadata(competition,season)}
+        except ValueError as exc:
+            raise HTTPException(422,str(exc)) from exc
     players = db.get_all_players()
     return {"count": len(players), "players": [p.model_dump() for p in players]}
 
@@ -174,6 +190,8 @@ async def stream_scout_mandate(
     age_max: int | None = Query(None, ge=18, le=60),
     min_minutes: int = Query(800, ge=0, le=10000),
     preferred_foot: Literal["Left", "Right", "Either"] | None = Query(None),
+    competition: str | None = Query(None),
+    season: str | None = Query(None),
 ):
     req = ScoutRequest(objective=objective, club=club, budget_eur=budget, wage_cap_pw=wage_cap,
                        age_max=age_max, min_minutes=min_minutes, preferred_foot=preferred_foot)
@@ -181,7 +199,7 @@ async def stream_scout_mandate(
         try:
             if budget != 50_000_000 or wage_cap != 120_000:
                 raise ValueError('Fee and wage constraints are unavailable in the historical dataset.')
-            req = ScoutRequest(objective=objective,club=club,min_minutes=min_minutes,age_max=age_max,preferred_foot=preferred_foot)
+            req = ScoutRequest(objective=objective,club=club,min_minutes=min_minutes,age_max=age_max,preferred_foot=preferred_foot,competition=competition,season=season)
             result = await asyncio.to_thread(real_data.search,req)
         except ValueError as exc:
             raise HTTPException(422,str(exc)) from exc

@@ -71,7 +71,7 @@ class TacticalRequirementsAgent:
 
         # 1. FULLBACK / WINGBACK (FB) - Checked BEFORE generic defender/CB
         if has_word(lower,
-            "fullback", "full back", "full-back",
+            "fullback", "full back", "full-back", "wingback",
             "left back", "left-back", "lwb",
             "right back", "right-back", "rwb",
             "wing back", "wing-back", "overlapping back", "lb", "rb"
@@ -130,7 +130,7 @@ class TacticalRequirementsAgent:
 
         # 3. CENTER BACK (CB)
         elif has_word(lower,
-            "center back", "centre back", "center-back", "centre-back",
+            "center back", "centre back", "center-back", "centre-back", "centreback", "centerback",
             "cb", "central defender", "high line defender", "stopper"
         ):
             pos_family = "CB"
@@ -241,7 +241,8 @@ class TacticalRequirementsAgent:
             is_left = has_word(lower, "left winger", "left wing", "lw")
             is_right = has_word(lower, "right winger", "right wing", "rw")
             specific_pos = "LW" if is_left else ("RW" if is_right else "WINGER")
-            role = f"Explosive 1v1 Inverted {'Left' if is_left else 'Right'} Winger"
+            side = 'Left ' if is_left else ('Right ' if is_right else '')
+            role = f"Explosive 1v1 {side}Winger"
             target_pct = TargetPercentiles(
                 progressive_passes=75.0,
                 progressive_carries=92.0,

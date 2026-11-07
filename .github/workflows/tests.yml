@@ -17,6 +17,7 @@ jobs:
       - run: node --check backend/app/static/radar.js
       - run: node --check backend/app/static/compare.js
       - run: node --check backend/app/static/research.js
+      - run: node --check backend/app/static/source.js
       - run: node --check backend/app/static/theme.js
       - run: node --test backend/tests/test_frontend.cjs
       - run: python -m backend.tests.integration_check

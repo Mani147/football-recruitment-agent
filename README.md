@@ -1,84 +1,83 @@
-# Touchline · Source-backed football season analysis
+# Touchline · Football comparison and recruitment research
 
-Explore real **StatsBomb Open Data, Premier League 2015/16** match events through explainable position profiles and two-player comparisons. This is a historical, non-commercial research workspace, not current recruitment intelligence.
-
-The complete fixture list contains 380 matches, 20 teams and 38 fixtures per team. The local import produces 548 player-season records. All event goals, including own goals, reconcile with the score in each of the 380 source match records. This validates our ingestion against those records; it does not independently establish every annotation's accuracy.
+Compare players and discover performance profiles using **OpenPlay, 2023/24, 2024/25 and 2025/26**. Coverage includes the Premier League, La Liga, Bundesliga, Serie A and Ligue 1. The default selection is Premier League 2025/26. This snapshot has **8,317 player-season records and 5,229 included matches** across 15 league-seasons; it is not a live 2026/27 feed.
 
 ## Install and run
 
-Requires Python 3.11+ and network access for the one-time import.
+Requires Python 3.11+ and network access for the one-time data import. No API key is needed.
 
 ```bash
 python -m venv .venv
 # Windows: .venv\Scripts\Activate.ps1
 # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
-python -m backend.app.data.import_statsbomb
+python -m backend.app.data.import_openplay
 python -m backend.app.main
 ```
 
-Open http://127.0.0.1:8000 for historical role search, or http://127.0.0.1:8000/compare for position-wise comparison. The app uses a generated local snapshot and needs no provider API key or network access during analysis. The source logo is loaded from the provider's repository for attribution.
+Open http://127.0.0.1:8000 for role search or http://127.0.0.1:8000/compare for comparison. The app reads a local snapshot and needs no network during analysis. Importing downloads approximately 28 MB of Parquet and metadata files; it does not download 41 million individual events. DuckDB reads the provider's documented player-match aggregates. A fresh checkout must run the import before starting the app; missing data never falls back to invented player records.
 
-**Data is not bundled or redistributed through this repository.** Review the [StatsBomb user agreement](https://github.com/hudl/open-data/blob/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/LICENSE.pdf) before fetching. It restricts redistribution and commercial use, and requires brand attribution for published analysis. Downloaded records and the generated snapshot are Git-ignored. The website includes the source logo and usage-agreement link. For commercial use or public data redistribution, obtain the appropriate provider permission first.
+## Using the workspace
 
-If the snapshot is missing, startup fails with the import command rather than silently substituting invented records. Do not expose `work/` as a static directory. The default server listens only on loopback.
+1. Select a league and season on either page. Both comparison players come from this selection.
+2. For recruitment research, name a position and style, review the interpreted role, and inspect the top profiles. For comparison, choose goalkeepers, fullbacks/wingbacks, centrebacks, midfielders (DM/CM/AM), wingers or strikers.
+3. Set minimum playing time. Players below 900 minutes can be browsed on the comparison page but receive no percentiles.
+4. Inspect the radar, exact percentiles and raw rates. Open the source panel to see included/excluded fixtures, cohort methodology and metric definitions.
 
-## Reproducibility and source checks
+Recognised words select predefined role targets; this is rule-based interpretation, not an unrestricted natural-language scouting model. The alignment score is an equal-weight mean target-match factor over measured axes, not an overall player rating or transfer forecast. Missing axes are omitted, never set to zero. New take-on, recovery and goalkeeper volume axes use a disclosed default target of the 75th percentile. Different leagues have separate reference populations; their percentiles should not be compared as league-adjusted ability ratings.
 
-- Upstream repository: [Hudl / StatsBomb Open Data](https://github.com/hudl/open-data).
-- Pinned revision: `4b73468fc5b0f1950f9f66fada70ad3a4f9327cb`.
-- Competition `2`, season `27`: Premier League 2015/16.
-- The importer verifies 380 unique match IDs, 380 unique directed fixture pairs, 20 teams and 38 appearances per team. Each fixture must contain both half-end markers. Shot goals plus own-goal-for events must reconcile with both source scores.
-- Raw events and lineups are downloaded directly, with bounded concurrency, retries and a compressed local cache. The snapshot records per-file SHA-256 hashes, upstream revision, retrieval time and every player's source match IDs. A failed build does not replace a previous snapshot.
-- Rebuild using `python -m backend.app.data.import_statsbomb`. The default cache is `work/statsbomb-cache/`; the generated output is `backend/app/data/statsbomb_pl_2015_16.json`. Different output/cache locations can be supplied via `--output` and `--cache`.
+## Source and reproducibility
 
-## What is calculated
+- Dataset: [openplay (Noah Bair)](https://github.com/nlbair/openplay), preview release `data-v0.1.0`, published November 3, 2026. The release links its underlying match records to WhoScored pages. This integration does not scrape those pages.
+- [Release downloads](https://github.com/nlbair/openplay/releases/tag/data-v0.1.0) and [data dictionary](https://github.com/nlbair/openplay/blob/main/DATA_DICTIONARY.md).
+- The checksum manifest is pinned to SHA-256 `5d185a3687dc6661a79b0ee9bb4363ed113ecf758142577812ebb9b88c8d0a27`. Every consumed file must match its manifest hash. Partial or corrupt transfers cannot replace verified cached files.
+- Import only selects five leagues and the three requested seasons. Published problematic fixtures, incomplete lineups/minutes and source-score mismatches are excluded. Every included match's player goals plus opposing own goals must reconcile with its source score. Missing fixtures remain missing; coverage is displayed.
+- Intra-league transfers are combined within the same player/league/season. Different leagues and seasons remain distinct records. IDs retain the upstream player ID, and each record retains its source match IDs.
+- Rebuild with `python -m backend.app.data.import_openplay`. Optional `--cache` and `--output` accept paths. Default cache: `work/openplay-cache/`; output: `backend/app/data/openplay_2023_2026.json`. A failed build preserves the previous snapshot.
 
-**Minutes and positions:** on-field intervals derived in source event order from Starting XI, substitutions, tactical shifts and dismissals. Each half is clipped to 45 regulation minutes. Temporary Player Off/On events are not subtracted. Source stoppage-time events still contribute to statistics, with a regulation-minute denominator. Primary position is the position with the most minutes; a secondary position needs at least 270 minutes and 10% of total minutes. Multi-club players are combined across the season and display all recorded clubs.
+## Metrics and positions
 
-**Raw statistics:** counts and per-90 rates computed from event annotations. Progressive passes are completed open-play passes advancing at least 12 StatsBomb x-units toward goal; progressive carries use the same forward-distance threshold. These are project definitions, not claims to reproduce a vendor's proprietary aggregate metric. xG comes from provider shot values; xA is the summed xG of shots linked to assisting passes. Pressure plus recovery is a volume measure. Pass completion is labelled as such, not a general possession-retention score.
+**Minutes:** OpenPlay expanded minutes include stoppage time. All per-90 rates use that denominator. These rates differ from regulation-minute aggregates.
 
-**Percentiles:** calculated separately for each requested position group against primary-position peers in this season with at least 900 regulation minutes. The average-rank formula for cohort members is `100 × (less + (equal − 1)/2) / (N − 1)`. For a secondary-position player outside the cohort, rank is interpolated as `less − 0.5` and clipped to 0–100. At least 10 reference players must have a usable metric. Aerial percentages require at least 20 aerial contests; pass completion requires 200 attempts; save rate requires 20 shots on target faced. Changing display filters does not change the reference cohort. There is **no league-strength multiplier** within this single-league dataset.
+**Positions:** map the release's starting-position codes into the six groups. Primary position is weighted by minutes in appearances started in each position. Secondary positions require at least 270 such minutes and 10% of observed starting-appearance minutes. This is not a reconstruction of in-match position changes. Substitute positions are unknown; a player with no observed starts remains unclassified. Statistics include all included appearances, including substitute minutes.
 
-**Goalkeepers:** unadjusted save percentage from on-target shot outcomes while the keeper is active, plus collection and sweeper event rates and distribution measures. Save percentage is not adjusted for shot difficulty. Collections and sweeps measure volume, not success rate. Post-shot xG is unavailable.
+**Percentiles:** primary-position peers in the same league and season with 900+ expanded minutes. At least 10 peers need usable values. Average ranks handle ties: `100 * (less + (equal - 1)/2) / (N - 1)`. Secondary-position players outside that reference cohort receive a clipped interpolated rank. Display filters do not change the cohort. Aerial percentages require 20 contests and pass completion requires 200 attempts. There is no league-strength multiplier.
 
-**Historical role search:** recognised position/style text selects a predefined role target. Candidates are ordered by mean target-match factor across available position-specific percentile axes, with one equal weight per measured axis. Missing axes are excluded, and the scored-axis count is displayed. This heuristic is not an overall-quality rating, transfer recommendation, or forecast.
+**OpenPlay definitions:** progressive passes are completed, non-set-piece passes starting at x >= 40 and ending at least 25% closer to goal centre. Successful take-ons are not progressive carries; recoveries do not include pressures. xG comes from Noah Bair's OpenPlay model; xA sums the xG of linked shots set up by a player. Neither is presented as StatsBomb or Opta xG.
 
-**Unavailable:** birth dates/ages, preferred foot, fees, wages, contracts, current availability, and validated squad-impact predictions. They are not filled with guesses or zero. Searches that request unavailable financial or demographic constraints return a clear HTTP 422 message. A chart omits unavailable axes and explains why; fewer than three measured axes produce no polygon. Players below the 900-minute cohort threshold remain browsable with the “All appearances” setting, but do not receive percentiles.
+**Goalkeepers:** saves, high claims and successful sweeps per 90, plus distribution. These measure volume and workload, not save percentage, claim success rate or shot-difficulty-adjusted quality. Save percentage and post-shot xG are unavailable.
 
-## Interface
+**Unknowns:** current ages, preferred foot, fees, wages, contracts, availability and validated squad-impact predictions. Source age fields are not used as verified age. Unsupported financial/demographic constraints return HTTP 422. These are performance shortlists for further investigation, not verified transfer opportunities.
 
-- Season search: plain-language role, explicit minimum playing time, historical alignment score and measured-axis count.
-- Comparison: goalkeepers, fullbacks/wingbacks, centrebacks, midfielders (DM/CM/AM), wingers and strikers (ST/CF), with an optional secondary-position filter.
-- Position-specific radar, raw-stat table, exact percentile table, cohort and metric definitions. The comparison page has no invented overall winner or recruitment target.
-- Persistent dark/light mode, responsive layout and reduced-motion support for the football header.
+## Attribution and access
+
+The maintainer declares the data [CC BY 4.0](https://github.com/nlbair/openplay/blob/main/LICENSE), with credit to **openplay (Noah Bair)**. The website carries that attribution. This project has not independently established upstream redistribution permissions. Downloaded files and derived player records stay local and Git-ignored; the repository publishes integration code and aggregate audit results. Review the source terms for your intended deployment. The old StatsBomb import remains available as a historical research utility, but is not used by the default app.
 
 ## API
 
-Documentation: http://127.0.0.1:8000/api/docs
+Interactive docs: http://127.0.0.1:8000/api/docs
 
 | Route | Behavior |
 | --- | --- |
-| `GET /api/dataset` | Source revision, season, coverage, definitions and limitations |
-| `GET /api/players` / `GET /api/players/{id}` | Historical source-derived records; unknown financial and demographic fields are null |
-| `GET /api/compare/players?group=midfielders&min_minutes=900&include_secondary=true` | Position-cohort comparisons |
-| `POST /api/scout/profile` | Interpret the supported historical role constraints |
-| `POST /api/scout/search` | Historical performance-profile search |
-| `GET /api/scout/stream` | A completion event for the same real-data search |
+| `GET /api/dataset?competition=eng&season=2025/26` | Catalogue, active coverage, source, definitions and limitations |
+| `GET /api/compare/players?group=midfielders&competition=esp&season=2024/25&min_minutes=900` | Same-league, same-season position comparisons |
+| `GET /api/players?competition=ger&season=2023/24` | Source-derived records in the selected league-season |
+| `GET /api/players/{id}` | One unambiguous player/league/season record |
+| `POST /api/scout/profile` and `/api/scout/search` | Accept `objective`, `min_minutes`, `competition` and `season` |
+| `GET /api/scout/stream` | Same selection and constraints as role search |
 | `POST /api/simulate` | HTTP 422: unsupported by this dataset |
-| `GET /api/health` | Actual mode, season and player count |
+| `GET /api/health` | Actual mode, available seasons and default-selection counts |
 
-Real-data API responses differ from the original demo dossiers. The legacy name `league_adjusted_percentiles` is retained for compatibility with shared chart code; in real mode these are computed position-cohort percentiles **without** a league adjustment. Use `data_mode` and metadata when interpreting them.
+Competition codes: `eng`, `esp`, `ger`, `ita`, `fra`. Seasons: `2023/24`, `2024/25`, `2025/26`. Defaults: `eng`, `2025/26`. Invalid selections return HTTP 422. The legacy field name `league_adjusted_percentiles` is retained for shared charts; in real mode these are position/league/season percentiles with no league-strength adjustment. Check `data_mode` and metadata.
 
-## Tests
+## Validation
 
 ```bash
 python -m pytest backend/tests -q
 node --test backend/tests/test_frontend.cjs
-node --check backend/app/static/research.js
 python -m backend.tests.integration_check
 ```
 
-CI uses invented, explicitly isolated fixtures to test aggregation and API behavior without redistributing StatsBomb records or downloading an entire season. `TOUCHLINE_DATASET=demo` exists only for legacy fixture smoke tests. The hand-authored seed records and legacy financial engine are retained for regression testing; the default user-facing routes do not use them. The old 50-scenario demo benchmark does not measure real-player ranking quality and must not be reported as validation of the source-backed dataset.
+CI uses invented, isolated fixtures and does not download provider data. `TOUCHLINE_DATASET=demo` exists for legacy smoke tests; the original 22 hand-authored records and financial engine are regression fixtures, not the default app. Their old benchmark does not validate real-player rankings.
 
-See [the data quality report](docs/data-quality-report.md) for the import audit and remaining limitations.
+See [the import audit](docs/data-quality-report.md) for coverage and validation limits.

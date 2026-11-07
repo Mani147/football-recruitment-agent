@@ -53,7 +53,7 @@ test('real season comparison preserves unknown money and omits unavailable chart
     if(!nodes.has(id)) nodes.set(id,{value:'',options:[],addEventListener(){},querySelector(){return null;}});
     return nodes.get(id);
   };
-  const context=vm.createContext({document:{getElementById:node},fetch:()=>new Promise(()=>{}),URLSearchParams});
+  const context=vm.createContext({document:{getElementById:node},fetch:()=>new Promise(()=>{}),URLSearchParams,window:{}});
   for(const file of ['radar.js','compare.js']) vm.runInContext(fs.readFileSync(path.join(__dirname,'../app/static',file),'utf8'),context);
   vm.runInContext(`
     const metricKeys=['progressive_passes','progressive_carries','chance_creation_xa','possession_retention'];
@@ -79,14 +79,41 @@ test('historical search sends performance constraints without fabricated finance
   };
   node('research-objective').value='Find a CM';node('research-minutes').value='900';
   const context=vm.createContext({document:{getElementById:node},fetch:async(url,options)=>{
-    if(url==='/api/dataset') return {ok:true,json:async()=>({percentile_method:'Measured',minutes_definition:'Regulation',limitations:[],metric_definitions:{}})};
+    if(url.startsWith('/api/dataset')) return {ok:true,json:async()=>({percentile_method:'Measured',minutes_definition:'Expanded',limitations:[],metric_definitions:{}})};
     requests.push(JSON.parse(options.body));
     return {ok:true,json:async()=>({status:'no_matches',candidates:[]})};
-  }});
-  vm.runInContext(fs.readFileSync(path.join(__dirname,'../app/static/research.js'),'utf8'),context);
+  },URLSearchParams});
+  for(const file of ['source.js','research.js']) vm.runInContext(fs.readFileSync(path.join(__dirname,'../app/static',file),'utf8'),context);
   await node('research-form').submit({preventDefault(){}});
   assert.deepEqual(requests,[{objective:'Find a CM',min_minutes:900}]);
   assert.equal(node('research-submit').disabled,false);
+});
+
+test('OpenPlay search sends the selected league and season and restores the submit control', async () => {
+  const nodes=new Map(),requests=[];
+  const node=id=>{
+    if(!nodes.has(id)) nodes.set(id,{value:'',addEventListener(k,fn){this[k]=fn;}});
+    return nodes.get(id);
+  };
+  node('research-objective').value='Find a striker';node('research-minutes').value='1350';
+  node('research-competition').value='esp';node('research-season').value='2024/25';
+  const context=vm.createContext({document:{getElementById:node},URLSearchParams,fetch:async(url,options)=>{
+    if(url.startsWith('/api/dataset')) return {ok:true,json:async()=>({limitations:[],metric_definitions:{}})};
+    requests.push(JSON.parse(options.body));
+    return {ok:true,json:async()=>({status:'no_matches',candidates:[]})};
+  }});
+  for(const file of ['source.js','research.js']) vm.runInContext(fs.readFileSync(path.join(__dirname,'../app/static',file),'utf8'),context);
+  await node('research-form').submit({preventDefault(){}});
+  assert.deepEqual(requests,[{objective:'Find a striker',min_minutes:1350,competition:'esp',season:'2024/25'}]);
+  assert.equal(node('research-submit').disabled,false);
+});
+
+test('OpenPlay radar uses measured take-ons and recoveries with no historical-season label', () => {
+  const context=radarContext();
+  const html=vm.runInContext(`renderRadar({data_mode:'openplay',player:{name:'Fixture'},league_adjusted_percentiles:{successful_takeons:70,ball_recoveries:80,progressive_passes:60}},null,null,realRadarMetrics(['successful_takeons','ball_recoveries','progressive_passes']))`,context);
+  assert.match(html,/Successful take-ons|Successful<\/tspan>/);
+  assert.match(html,/3 position-cohort percentile axes/);
+  assert.doesNotMatch(html,/2015\/16|Progressive carries|Pressures &amp;/);
 });
 
 test('radar maps all eight actual metrics to the 0–100 scale and provides exact values', () => {

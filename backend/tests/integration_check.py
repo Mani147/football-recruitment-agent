@@ -7,7 +7,7 @@ def main():
         health = client.get('/api/health').json()
         assert health['player_count'] > 0
         r = client.post('/api/scout/search',json={'objective':'Find a right back under 45M'})
-        if health.get('mode')=='statsbomb':
+        if health.get('mode') in ('statsbomb','openplay'):
             assert r.status_code==422
             r=client.post('/api/scout/search',json={'objective':'Find a right back'})
         assert r.status_code == 200

@@ -32,3 +32,7 @@
   .compare-chart { padding: 20px 12px; }
   .compare-controls { gap: 18px; }
 }
+
+.scope-controls { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; width:100%; }
+.compare-controls > .scope-controls { flex-basis:100%; min-width:0; }
+@media(max-width:500px) { .scope-controls { grid-template-columns:1fr; } }
