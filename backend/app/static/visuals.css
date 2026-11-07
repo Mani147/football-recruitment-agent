@@ -93,3 +93,48 @@
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }
+
+/* A quiet passing drill on a miniature pitch, using native SVG and CSS. */
+.topbar { background-image: linear-gradient(110deg, transparent 45%, #7eaa6e0d 80%, transparent); }
+.crest-football { width: 41px; height: 41px; padding: 7px; border-radius: 12px; box-shadow: 0 3px 10px #163f2312; }
+.crest-football svg { display: block; width: 27px; height: 27px; }
+.header-football { display: flex; align-items: center; gap: 10px; margin: 0 18px; flex: 0 1 250px; min-width: 160px; }
+.mini-pitch { position: relative; width: 220px; height: 64px; flex: 1; overflow: hidden; border-radius: 8px; background: repeating-linear-gradient(90deg, #598b4d08 0 22px, #598b4d12 22px 44px); }
+.pitch-markings { position: absolute; width: 100%; height: 100%; stroke: var(--green); stroke-width: 1; opacity: .23; }
+.football-travel { position: absolute; left: calc(50% - 13px); top: 17px; width: 26px; height: 30px; animation: football-pass 7s ease-in-out infinite; }
+.football-spin { position: relative; display: block; width: 26px; height: 26px; animation: football-roll 7s ease-in-out infinite; filter: drop-shadow(0 2px 2px #10291d26); }
+.football-spin svg { display: block; width: 100%; height: 100%; }
+.football-shadow { position: absolute; left: 3px; bottom: -3px; width: 22px; height: 5px; border-radius: 50%; background: #193d2d24; filter: blur(2px); }
+.motion-toggle { display: grid; place-items: center; flex: none; width: 24px; height: 28px; margin: 0; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); font-size: 11px; cursor: pointer; }
+.motion-play { display: none; font-size: 9px; }
+#pause-football:focus-visible ~ .motion-toggle { outline: 3px solid #d39e34; outline-offset: 3px; }
+#pause-football:checked ~ .mini-pitch .football-travel,
+#pause-football:checked ~ .mini-pitch .football-spin { animation-play-state: paused; }
+#pause-football:checked ~ .motion-toggle .motion-pause { display: none; }
+#pause-football:checked ~ .motion-toggle .motion-play { display: block; }
+[data-theme="dark"] .mini-pitch { background: repeating-linear-gradient(90deg, #83d5ab06 0 22px, #83d5ab10 22px 44px); }
+[data-theme="dark"] .football-shadow { background: #0008; }
+@keyframes football-pass {
+  0%, 8%, 100% { transform: translateX(-48px); }
+  46%, 54% { transform: translateX(48px); }
+}
+@keyframes football-roll {
+  0%, 8%, 100% { transform: rotate(-180deg); }
+  46%, 54% { transform: rotate(180deg); }
+}
+@media (max-width: 1100px) and (min-width: 701px) {
+  .header-row .brand-sub { display: none; }
+}
+@media (max-width: 700px) {
+  .header-football { display: none; }
+  .football-travel, .football-spin { animation: none; }
+  .crest-football svg { animation: football-arrival 1.8s ease-out both; }
+}
+@keyframes football-arrival {
+  from { transform: translateY(-8px) rotate(-100deg); opacity: .3; }
+  to { transform: translateY(0) rotate(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .football-travel, .football-spin, .crest-football svg { animation: none; }
+  .motion-toggle { display: none; }
+}
