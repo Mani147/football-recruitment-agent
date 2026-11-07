@@ -13,10 +13,17 @@ from pydantic import BaseModel, Field, ValidationError
 from backend.app.config import settings
 from backend.app.data.sqlite_db import db
 from backend.app.agents.orchestrator import director_orchestrator
+from backend.app.data import real_data
+
+# Demo mode is an explicit test fixture; the public workspace uses real season data.
+DATASET_MODE = os.getenv('TOUCHLINE_DATASET', 'statsbomb')
 
 @asynccontextmanager
 async def lifespan(app):
-    await asyncio.to_thread(initialize_data)
+    if DATASET_MODE == 'demo':
+        await asyncio.to_thread(initialize_data)
+    else:
+        await asyncio.to_thread(real_data.snapshot)
     yield
 
 app = FastAPI(
@@ -32,6 +39,8 @@ if os.path.exists(static_dir):
 
 @app.get("/")
 def serve_index():
+    if DATASET_MODE != 'demo':
+        return FileResponse(os.path.join(static_dir, 'research.html'))
     index_file = os.path.join(static_dir, "index.html")
     if os.path.exists(index_file):
         return FileResponse(index_file)
@@ -46,7 +55,10 @@ def serve_comparison():
 def comparison_players(
     group: Literal['goalkeepers','fullbacks','centrebacks','midfielders','wingers','strikers'] = 'midfielders',
     include_secondary: bool = True,
+    min_minutes: int = Query(900,ge=0,le=3420),
 ):
+    if DATASET_MODE != 'demo':
+        return real_data.comparison(group,include_secondary,min_minutes)
     from backend.app.analytics.comparison import POSITION_COMPARISON_GROUPS, matches_comparison_group
     from backend.app.analytics.league_adjustment import adjust_percentiles_for_league
     from backend.app.analytics.reliability import calculate_reliability_score
@@ -90,21 +102,44 @@ def effective_profile(req: ScoutRequest):
 
 @app.post("/api/scout/profile")
 def preview_profile(req: ScoutRequest):
+    if DATASET_MODE != 'demo':
+        try:
+            profile, group = real_data.interpret(req)
+            return {'profile':real_data.profile_payload(profile,group),'needs_clarification':not group,
+                    'notice':'Historical performance-only search. Age, foot, fees and wages cannot be verified. Minimum 900 regulation minutes.'}
+        except ValueError as exc:
+            raise HTTPException(422,str(exc)) from exc
     profile = effective_profile(req)
     return {"profile": profile.model_dump(), "needs_clarification": profile.position_family == "UNKNOWN",
             "notice": "Only the displayed constraints are enforced. Text is interpreted by rules; review before searching."}
 
+@app.get("/api/dataset")
+def dataset_metadata():
+    return real_data.metadata() if DATASET_MODE != 'demo' else {'mode':'illustrative_demo'}
+
+
 @app.get("/api/health")
 def health_check():
+    if DATASET_MODE != 'demo':
+        return {'status':'ok','project':settings.PROJECT_NAME,'version':'3.0.0','player_count':len(real_data.snapshot()['players']),
+                'mode':'statsbomb','season':'2015/16','matches':380}
     return {"status": "ok", "project": settings.PROJECT_NAME, "version": "2.0.0", "player_count": len(db.get_all_players()), "mode": "illustrative_demo"}
 
 @app.get("/api/players")
 def list_players():
+    if DATASET_MODE != 'demo':
+        players=real_data.snapshot()['players']
+        return {'count':len(players),'players':players,'metadata':real_data.metadata()}
     players = db.get_all_players()
     return {"count": len(players), "players": [p.model_dump() for p in players]}
 
 @app.get("/api/players/{player_id}")
 def get_player(player_id: str):
+    if DATASET_MODE != 'demo':
+        player=next((p for p in real_data.snapshot()['players'] if p['id']==player_id),None)
+        if not player:
+            raise HTTPException(404,'Player not found')
+        return player
     player = db.get_player_by_id(player_id)
     if not player:
         raise HTTPException(status_code=404, detail="Player not found")
@@ -112,6 +147,11 @@ def get_player(player_id: str):
 
 @app.post("/api/scout/search")
 def search_scout_mandate(req: ScoutRequest):
+    if DATASET_MODE != 'demo':
+        try:
+            return real_data.search(req)
+        except ValueError as exc:
+            raise HTTPException(422,str(exc)) from exc
     state, dossier = director_orchestrator.execute_recruitment_workflow(
         objective=req.objective,
         club=req.club,
@@ -137,6 +177,17 @@ async def stream_scout_mandate(
 ):
     req = ScoutRequest(objective=objective, club=club, budget_eur=budget, wage_cap_pw=wage_cap,
                        age_max=age_max, min_minutes=min_minutes, preferred_foot=preferred_foot)
+    if DATASET_MODE != 'demo':
+        try:
+            if budget != 50_000_000 or wage_cap != 120_000:
+                raise ValueError('Fee and wage constraints are unavailable in the historical dataset.')
+            req = ScoutRequest(objective=objective,club=club,min_minutes=min_minutes,age_max=age_max,preferred_foot=preferred_foot)
+            result = await asyncio.to_thread(real_data.search,req)
+        except ValueError as exc:
+            raise HTTPException(422,str(exc)) from exc
+        async def real_events():
+            yield f"data: {json.dumps({'event':'complete','data':result})}\n\n"
+        return StreamingResponse(real_events(),media_type='text/event-stream')
     profile = effective_profile(req)
     async def event_generator():
         queue = asyncio.Queue()
@@ -170,6 +221,8 @@ async def stream_scout_mandate(
 
 @app.post("/api/simulate")
 def simulate_transfer(candidate_id: str, club: str = "Arsenal FC"):
+    if DATASET_MODE != 'demo':
+        raise HTTPException(422,'Squad impact predictions are not supported by this historical dataset.')
     player = db.get_player_by_id(candidate_id)
     if not player:
         raise HTTPException(status_code=404, detail="Player not found")

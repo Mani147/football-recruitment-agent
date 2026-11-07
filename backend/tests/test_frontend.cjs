@@ -47,6 +47,48 @@ test('comparison selection stays within the position pool and never compares a p
   assert.equal(vm.runInContext(`matchingSelection([],'','')[0]`,context),undefined);
 });
 
+test('real season comparison preserves unknown money and omits unavailable chart axes', () => {
+  const nodes=new Map();
+  const node=id=>{
+    if(!nodes.has(id)) nodes.set(id,{value:'',options:[],addEventListener(){},querySelector(){return null;}});
+    return nodes.get(id);
+  };
+  const context=vm.createContext({document:{getElementById:node},fetch:()=>new Promise(()=>{}),URLSearchParams});
+  for(const file of ['radar.js','compare.js']) vm.runInContext(fs.readFileSync(path.join(__dirname,'../app/static',file),'utf8'),context);
+  vm.runInContext(`
+    const metricKeys=['progressive_passes','progressive_carries','chance_creation_xa','possession_retention'];
+    const row={data_mode:'statsbomb',player:{id:'a',name:'Real profile',club:'Historical club',league:'Premier League',
+      primary_position:'CM',secondary_positions:[],age:null,preferred_foot:null,market_value_eur:null,weekly_wage_eur:null,raw_metrics:{minutes_played:1000},counts:{}},
+      sample_note:'1000 minutes',league_adjusted_percentiles:{progressive_passes:75,progressive_carries:80,chance_creation_xa:70,possession_retention:null}};
+    comparisonData={group:'midfielders',data_mode:'statsbomb',players:[row],groups:{midfielders:{metrics:metricKeys,label:'Midfielders'}}};
+    renderComparison();
+  `,context);
+  assert.match(node('comparison-cards').innerHTML,/Not available/);
+  assert.match(node('comparison-cards').innerHTML,/Not recorded/);
+  assert.doesNotMatch(node('comparison-cards').innerHTML,/€0|undefined\/100/);
+  assert.match(node('comparison-radar').innerHTML,/Unavailable axes omitted: Pass completion/);
+  assert.match(node('comparison-radar').innerHTML,/3 position-cohort percentile axes/);
+  assert.equal(node('player-two').disabled,true);
+});
+
+test('historical search sends performance constraints without fabricated finance or age fields', async () => {
+  const nodes=new Map(), requests=[];
+  const node=id=>{
+    if(!nodes.has(id)) nodes.set(id,{value:'',addEventListener(k,fn){this[k]=fn;}});
+    return nodes.get(id);
+  };
+  node('research-objective').value='Find a CM';node('research-minutes').value='900';
+  const context=vm.createContext({document:{getElementById:node},fetch:async(url,options)=>{
+    if(url==='/api/dataset') return {ok:true,json:async()=>({percentile_method:'Measured',minutes_definition:'Regulation',limitations:[],metric_definitions:{}})};
+    requests.push(JSON.parse(options.body));
+    return {ok:true,json:async()=>({status:'no_matches',candidates:[]})};
+  }});
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../app/static/research.js'),'utf8'),context);
+  await node('research-form').submit({preventDefault(){}});
+  assert.deepEqual(requests,[{objective:'Find a CM',min_minutes:900}]);
+  assert.equal(node('research-submit').disabled,false);
+});
+
 test('radar maps all eight actual metrics to the 0–100 scale and provides exact values', () => {
   const html = vm.runInContext('renderRadar(candidate,profile)', radarContext());
   assert.match(html, /points="320.00,280.00/); // First metric is zero, at center.

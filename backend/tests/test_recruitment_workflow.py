@@ -25,6 +25,7 @@ def database(tmp_path):
 def client(database, monkeypatch):
     # Isolate API and all agent reads from persistent application data.
     import backend.app.main as main
+    monkeypatch.setattr(main,'DATASET_MODE','demo')
     import backend.app.data.bootstrap as bootstrap
     import backend.app.agents.tools as tools_module
     index = SemanticScoutVectorStore()

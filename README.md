@@ -1,92 +1,84 @@
-# Touchline · Football recruitment workspace
+# Touchline · Source-backed football season analysis
 
-A transparent recruitment demo: define a role, review the exact constraints, and inspect a shortlist with explainable scores, estimated costs and stored-record checks.
+Explore real **StatsBomb Open Data, Premier League 2015/16** match events through explainable position profiles and two-player comparisons. This is a historical, non-commercial research workspace, not current recruitment intelligence.
 
-**This is a portfolio sandbox, not a live scouting service.** The seeded 2025/26 player metrics, narratives, fees and wages are illustrative benchmarks. There are no live StatsBomb, Opta, Transfermarkt or LLM calls. Narrative retrieval uses local TF-IDF similarity. Do not use the outputs as independently verified transfer advice.
+The complete fixture list contains 380 matches, 20 teams and 38 fixtures per team. The local import produces 548 player-season records. All event goals, including own goals, reconcile with the score in each of the 380 source match records. This validates our ingestion against those records; it does not independently establish every annotation's accuracy.
 
-## Run locally
+## Install and run
 
-Requires Python 3.11 or newer.
+Requires Python 3.11+ and network access for the one-time import.
 
 ```bash
 python -m venv .venv
-# Windows PowerShell: .venv\Scripts\Activate.ps1
+# Windows: .venv\Scripts\Activate.ps1
 # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
+python -m backend.app.data.import_statsbomb
 python -m backend.app.main
 ```
 
-Open http://127.0.0.1:8000. No API key or separate seed command is required. Startup seeds an empty database and rebuilds the process-local narrative index from stored players on every launch. Existing nonempty databases are preserved. Set `DATABASE_PATH` to use a different SQLite file; database files are ignored by Git.
+Open http://127.0.0.1:8000 for historical role search, or http://127.0.0.1:8000/compare for position-wise comparison. The app uses a generated local snapshot and needs no provider API key or network access during analysis. The source logo is loaded from the provider's repository for attribution.
 
-## The guided workflow
+**Data is not bundled or redistributed through this repository.** Review the [StatsBomb user agreement](https://github.com/hudl/open-data/blob/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/LICENSE.pdf) before fetching. It restricts redistribution and commercial use, and requires brand attribution for published analysis. Downloaded records and the generated snapshot are Git-ignored. The website includes the source logo and usage-agreement link. For commercial use or public data redistribution, obtain the appropriate provider permission first.
 
-1. **Define the brief.** Name a supported role: GK, fullback, LB/RB, CB, DM, CM, AM, winger, LW/RW, or ST/CF. Describe the style you need. Set a fee ceiling in EUR millions, weekly gross wage cap, minimum minutes, and an optional age or preferred-foot override.
-2. **Review the interpretation.** Check the effective position, club, age range, budget, wages, foot and minutes before running a search. Editing the form invalidates the prior review. Only displayed constraints are enforced; arbitrary nationality, league, release-clause and exact metric requirements in prose are not implemented.
-3. **Inspect the shortlist.** Every candidate must pass the same eligibility gate, including secondary positions and sided roles. Players already at the recruiting club are excluded. There is no automatic budget, age, wage or minutes relaxation. Empty results explain how to explicitly revise the brief.
-4. **Read the evidence.** Select a player to inspect score components, sample reliability, estimated annual book cost, tactical percentiles against targets, raw record checks and caveats. Download the dossier as JSON.
+If the snapshot is missing, startup fails with the import command rather than silently substituting invented records. Do not expose `work/` as a static directory. The default server listens only on loopback.
 
-Text parsing is deterministic and intentionally limited. `U24` and `under 24 years` mean age 23 or younger. `age <=24` is inclusive. The age form field overrides text. Foot selection overrides text; “No preference” removes a text foot requirement. The stricter of a monetary amount in the text and the form fee ceiling is used. Text-only wages are not enforced: use the wage cap field. Monetary inputs must be EUR; dollar and pound prompts return a validation message. A club named in the role text can override the club field, and is shown during review.
+## Reproducibility and source checks
 
-## Position-wise player comparison
+- Upstream repository: [Hudl / StatsBomb Open Data](https://github.com/hudl/open-data).
+- Pinned revision: `4b73468fc5b0f1950f9f66fada70ad3a4f9327cb`.
+- Competition `2`, season `27`: Premier League 2015/16.
+- The importer verifies 380 unique match IDs, 380 unique directed fixture pairs, 20 teams and 38 appearances per team. Each fixture must contain both half-end markers. Shot goals plus own-goal-for events must reconcile with both source scores.
+- Raw events and lineups are downloaded directly, with bounded concurrency, retries and a compressed local cache. The snapshot records per-file SHA-256 hashes, upstream revision, retrieval time and every player's source match IDs. A failed build does not replace a previous snapshot.
+- Rebuild using `python -m backend.app.data.import_statsbomb`. The default cache is `work/statsbomb-cache/`; the generated output is `backend/app/data/statsbomb_pl_2015_16.json`. Different output/cache locations can be supplied via `--output` and `--cache`.
 
-Open `/compare` or choose **Player comparison** in the workspace navigation. Browse goalkeepers, fullbacks/wingbacks, centrebacks, midfielders (DM/CM/AM), wingers and strikers (ST/CF). Toggle secondary positions on or off. Choose two different players to inspect their position-specific radar, exact percentiles, raw per-90 statistics, playing time, estimated fees and wages. All stored players in the group are available; recruitment age and budget limits do not apply. There is no overall-winner score and no invented role target.
+## What is calculated
 
-Goalkeeper charts show only available distribution, retention and aerial proxies. The dataset lacks saves, post-shot xG, cross claiming and sweeping data, so it cannot support a complete goalkeeper assessment. Across all positions, percentiles are hand-authored demonstration values, not calculations from a documented comparison population.
+**Minutes and positions:** on-field intervals derived in source event order from Starting XI, substitutions, tactical shifts and dismissals. Each half is clipped to 45 regulation minutes. Temporary Player Off/On events are not subtracted. Source stoppage-time events still contribute to statistics, with a regulation-minute denominator. Primary position is the position with the most minutes; a secondary position needs at least 270 minutes and 10% of total minutes. Multi-club players are combined across the season and display all recorded clubs.
 
-## Appearance and player strengths
+**Raw statistics:** counts and per-90 rates computed from event annotations. Progressive passes are completed open-play passes advancing at least 12 StatsBomb x-units toward goal; progressive carries use the same forward-distance threshold. These are project definitions, not claims to reproduce a vendor's proprietary aggregate metric. xG comes from provider shot values; xA is the summed xG of shots linked to assisting passes. Pressure plus recovery is a volume measure. Pass completion is labelled as such, not a general possession-retention score.
 
-Use the header's Dark mode / Light mode button to switch themes. The first visit follows your system preference; an explicit choice is saved in this browser. The toggle still works when browser storage is blocked, but cannot persist across reloads in that case.
+**Percentiles:** calculated separately for each requested position group against primary-position peers in this season with at least 900 regulation minutes. The average-rank formula for cohort members is `100 × (less + (equal − 1)/2) / (N − 1)`. For a secondary-position player outside the cohort, rank is interpolated as `less − 0.5` and clipped to 0–100. At least 10 reference players must have a usable metric. Aerial percentages require at least 20 aerial contests; pass completion requires 200 attempts; save rate requires 20 shots on target faced. Changing display filters does not change the reference cohort. There is **no league-strength multiplier** within this single-league dataset.
 
-After searching, each selected player has an eight-axis radar chart using the existing league-adjusted percentiles. The solid green profile shows the player, the dashed amber outline shows the recruitment role targets, and an optional dotted blue profile shows another shortlisted player. Use the comparison dropdown to select the second player. Higher values extend farther from the center on a fixed 0–100 scale. Chart area is not an overall-quality score. Expand “View exact percentiles” for a readable table; detailed metric bars remain available. These are illustrative benchmarks, not live DataMB data.
+**Goalkeepers:** unadjusted save percentage from on-target shot outcomes while the keeper is active, plus collection and sweeper event rates and distribution measures. Save percentage is not adjusted for shot difficulty. Collections and sweeps measure volume, not success rate. Post-shot xG is unavailable.
 
-## What the numbers mean
+**Historical role search:** recognised position/style text selects a predefined role target. Candidates are ordered by mean target-match factor across available position-specific percentile axes, with one equal weight per measured axis. Missing axes are excluded, and the scored-axis count is displayed. This heuristic is not an overall-quality rating, transfer recommendation, or forecast.
 
-| Output | Meaning | Limits |
-| --- | --- | --- |
-| Fit / 100 | 40% tactical target match + 25% role-weighted statistical quality + 20% financial headroom + 15% age potential | Comparison score, not success probability. Fixed heuristic weights. |
-| Tactical breakdown | League-adjusted percentile against each target | League multipliers are heuristics; percentiles are illustrative. |
-| Reliability / 100 | Stored sample exposure, consistency, completeness and league tier | Does not independently establish data accuracy. |
-| Annual book cost | Estimated fee / 5 + weekly gross wage × 52 | Excludes bonuses, agent fees, taxes and signing costs. Amortization helper caps the term at five years. |
-| Stored-record audit | Supplied raw claims compared numerically with the stored record, plus strict fee and wage checks | Matching the demo record is not an external fact check. Missing, unknown or mismatched claims fail verification. Small samples produce a caveat. |
-| Squad impact illustration | Heuristic defense and progression changes against the available Arsenal baseline | Unvalidated proxy. Other clubs explicitly disclose use of the Arsenal reference. Goalkeeper scoring lacks specialist shot-stopping metrics. |
+**Unavailable:** birth dates/ages, preferred foot, fees, wages, contracts, current availability, and validated squad-impact predictions. They are not filled with guesses or zero. Searches that request unavailable financial or demographic constraints return a clear HTTP 422 message. A chart omits unavailable axes and explains why; fewer than three measured axes produce no polygon. Players below the 900-minute cohort threshold remain browsable with the “All appearances” setting, but do not receive percentiles.
 
-The statistical score averages category percentiles using the role's priorities: defense (tackles/interceptions and aerial), progression (passes and carries), pressing/recovery, possession retention, and creation/goal threat. The tactical score uses the same categories to measure the shortfall against role targets. A shortfall of 15 percentile points corresponds to a 0.85 match factor; meeting a target gives 1.0.
+## Interface
 
-## Verification
-
-```bash
-python -m pytest backend/tests -q
-python -m backend.tests.integration_check
-node --check backend/app/static/app.js
-python -m backend.tests.eval_suite.run_evaluation --output work/evaluation.json
-```
-
-Node is needed only for the JavaScript syntax check; the app runs without a frontend build. GitHub Actions runs the tests, smoke check and JS syntax check.
-
-The 50-scenario evaluation reports candidate coverage, empty results, clarification requests, errors, position agreement and constraint compliance separately. It checks every returned candidate against the effective brief and independently checks the scenario's age, budget and wage limits. Stress cases receive no automatic passes. Empty results remain in position-metric denominators; if no candidates are returned, candidate-compliance rates are `null`. Position agreement is not a measure of overall recruitment quality. Scenario text may contain unsupported preferences; those are not evaluated. Latency is measured locally, with no estimated LLM network latency or claimed external grounding accuracy.
+- Season search: plain-language role, explicit minimum playing time, historical alignment score and measured-axis count.
+- Comparison: goalkeepers, fullbacks/wingbacks, centrebacks, midfielders (DM/CM/AM), wingers and strikers (ST/CF), with an optional secondary-position filter.
+- Position-specific radar, raw-stat table, exact percentile table, cohort and metric definitions. The comparison page has no invented overall winner or recruitment target.
+- Persistent dark/light mode, responsive layout and reduced-motion support for the football header.
 
 ## API
 
-Interactive documentation: http://127.0.0.1:8000/api/docs
+Documentation: http://127.0.0.1:8000/api/docs
 
-| Endpoint | Purpose |
+| Route | Behavior |
 | --- | --- |
-| `POST /api/scout/profile` | Preview the interpreted brief without searching |
-| `POST /api/scout/search` | Return dossier and workflow milestones |
-| `GET /api/scout/stream` | SSE events emitted during actual execution, ending with `complete` or `error` |
-| `GET /api/players` | List stored demo players |
-| `GET /api/players/{id}` | Inspect a stored player |
-| `POST /api/simulate?candidate_id=...&club=...` | Calculate the illustrative impact proxy |
-| `GET /api/health` | App mode, version and player count |
+| `GET /api/dataset` | Source revision, season, coverage, definitions and limitations |
+| `GET /api/players` / `GET /api/players/{id}` | Historical source-derived records; unknown financial and demographic fields are null |
+| `GET /api/compare/players?group=midfielders&min_minutes=900&include_secondary=true` | Position-cohort comparisons |
+| `POST /api/scout/profile` | Interpret the supported historical role constraints |
+| `POST /api/scout/search` | Historical performance-profile search |
+| `GET /api/scout/stream` | A completion event for the same real-data search |
+| `POST /api/simulate` | HTTP 422: unsupported by this dataset |
+| `GET /api/health` | Actual mode, season and player count |
 
-Search/profile requests accept `objective`, `club`, `budget_eur`, `wage_cap_pw`, optional inclusive `age_max`, `min_minutes`, and optional `preferred_foot` (`Left`, `Right`, `Either`). SSE uses `budget` and `wage_cap` query names for compatibility and accepts the same optional constraints. Dossiers return `complete`, `no_matches`, or `needs_clarification` status. Invalid values receive HTTP 422. Stream execution failures return a safe error event; the UI closes the connection and offers retry instead of silently running the search again.
+Real-data API responses differ from the original demo dossiers. The legacy name `league_adjusted_percentiles` is retained for compatibility with shared chart code; in real mode these are computed position-cohort percentiles **without** a league adjustment. Use `data_mode` and metadata when interpreting them.
 
-## Structure
+## Tests
 
-- `backend/app/agents/`: role parsing, candidate retrieval, orchestration, finance and record verification.
-- `backend/app/analytics/`: shared eligibility, role-based scoring, reliability, costs and impact proxy.
-- `backend/app/data/`: SQLite records, demo seed data, bootstrap and local narrative index.
-- `backend/app/static/`: accessible, responsive HTML/CSS/JavaScript interface; no build step or chart runtime.
-- `backend/tests/`: regression tests, integration smoke check and scenario evaluation.
+```bash
+python -m pytest backend/tests -q
+node --test backend/tests/test_frontend.cjs
+node --check backend/app/static/research.js
+python -m backend.tests.integration_check
+```
 
-The default server listens on loopback at `127.0.0.1:8000`.
+CI uses invented, explicitly isolated fixtures to test aggregation and API behavior without redistributing StatsBomb records or downloading an entire season. `TOUCHLINE_DATASET=demo` exists only for legacy fixture smoke tests. The hand-authored seed records and legacy financial engine are retained for regression testing; the default user-facing routes do not use them. The old 50-scenario demo benchmark does not measure real-player ranking quality and must not be reported as validation of the source-backed dataset.
+
+See [the data quality report](docs/data-quality-report.md) for the import audit and remaining limitations.
