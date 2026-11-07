@@ -56,16 +56,6 @@ class PlayerScoutAgent:
             min_minutes=profile.min_minutes_played
         )
 
-        # If too few results, relax constraints slightly (but keep position strict)
-        if len(sql_results) < 2:
-            sql_results = tools.search_candidates_sql(
-                position_family=profile.position_family,
-                position=profile.position,
-                max_age=profile.age_max + 2,
-                max_budget_eur=profile.budget_max_eur * 1.30,
-                min_minutes=500
-            )
-
         candidate_pool = [PlayerProfile(**m) for m in sql_results]
         candidate_ids = {p.id for p in candidate_pool}
 
@@ -80,7 +70,8 @@ class PlayerScoutAgent:
             if position_matches(player, profile.position_family, profile.position):
                 semantic_pool.append(player)
 
-        combined_pool = candidate_pool + semantic_pool
+        from backend.app.analytics.eligibility import eligibility_failures
+        combined_pool = [p for p in candidate_pool + semantic_pool if not eligibility_failures(p, profile)]
 
         # --- Step 3: Deterministic Ranking ---
         ranked_candidates = rank_candidates(combined_pool, profile)

@@ -1,31 +1,29 @@
-﻿import json
+import json
 import os
 import asyncio
-from typing import Optional
+from typing import Literal
+from contextlib import asynccontextmanager
+from backend.app.data.bootstrap import initialize_data
+from backend.app.agents.tactical_agent import tactical_agent, extract_target_club
 from fastapi import FastAPI, Query, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ValidationError
 
 from backend.app.config import settings
 from backend.app.data.sqlite_db import db
 from backend.app.agents.orchestrator import director_orchestrator
-from backend.app.agents.tools import tools
-from backend.app.schemas.dossier import FinalRecruitmentDossier
+
+@asynccontextmanager
+async def lifespan(app):
+    await asyncio.to_thread(initialize_data)
+    yield
 
 app = FastAPI(
+    lifespan=lifespan,
     title=settings.PROJECT_NAME,
     openapi_url="/api/openapi.json",
     docs_url="/api/docs"
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
 )
 
 static_dir = os.path.join(os.path.dirname(__file__), "static")
@@ -40,14 +38,37 @@ def serve_index():
     return {"status": "ok", "project": settings.PROJECT_NAME}
 
 class ScoutRequest(BaseModel):
-    objective: str
-    club: str = "Arsenal FC"
-    budget_eur: float = 50_000_000.0
-    wage_cap_pw: float = 120_000.0
+    objective: str = Field(min_length=3, max_length=2000, pattern=r"\S")
+    club: str = Field(default="Arsenal FC", min_length=1, max_length=100, pattern=r"\S")
+    budget_eur: float = Field(default=50_000_000, gt=0, le=1_000_000_000, allow_inf_nan=False)
+    wage_cap_pw: float = Field(default=120_000, gt=0, le=10_000_000, allow_inf_nan=False)
+    age_max: int | None = Field(default=None, ge=18, le=60)
+    min_minutes: int = Field(default=800, ge=0, le=10000)
+    preferred_foot: Literal["Left", "Right", "Either"] | None = None
+
+def effective_profile(req: ScoutRequest):
+    try:
+        profile = tactical_agent.generate_profile(req.objective, extract_target_club(req.club, req.club), req.budget_eur, req.wage_cap_pw)
+        if req.age_max is not None:
+            profile.age_max = req.age_max
+        profile.min_minutes_played = req.min_minutes
+        if req.preferred_foot is not None:
+            profile.preferred_foot = None if req.preferred_foot == "Either" else req.preferred_foot
+        if profile.age_max < profile.age_min:
+            raise ValueError("Adult recruitment only: set a maximum age of at least 18.")
+        return profile
+    except (ValueError, ValidationError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+@app.post("/api/scout/profile")
+def preview_profile(req: ScoutRequest):
+    profile = effective_profile(req)
+    return {"profile": profile.model_dump(), "needs_clarification": profile.position_family == "UNKNOWN",
+            "notice": "Only the displayed constraints are enforced. Text is interpreted by rules; review before searching."}
 
 @app.get("/api/health")
 def health_check():
-    return {"status": "ok", "project": settings.PROJECT_NAME, "version": "1.0.0"}
+    return {"status": "ok", "project": settings.PROJECT_NAME, "version": "2.0.0", "player_count": len(db.get_all_players()), "mode": "illustrative_demo"}
 
 @app.get("/api/players")
 def list_players():
@@ -67,7 +88,8 @@ def search_scout_mandate(req: ScoutRequest):
         objective=req.objective,
         club=req.club,
         budget_eur=req.budget_eur,
-        wage_cap_pw=req.wage_cap_pw
+        wage_cap_pw=req.wage_cap_pw,
+        profile=effective_profile(req)
     )
     return {
         "session_id": state.session_id,
@@ -77,37 +99,46 @@ def search_scout_mandate(req: ScoutRequest):
 
 @app.get("/api/scout/stream")
 async def stream_scout_mandate(
-    objective: str = Query(..., description="Recruitment requirement"),
-    club: str = Query("Arsenal FC"),
-    budget: float = Query(50_000_000.0),
-    wage_cap: float = Query(120_000.0)
+    objective: str = Query(..., min_length=3, max_length=2000, pattern=r"\S"),
+    club: str = Query("Arsenal FC", min_length=1, max_length=100, pattern=r"\S"),
+    budget: float = Query(50_000_000, gt=0, le=1_000_000_000, allow_inf_nan=False),
+    wage_cap: float = Query(120_000, gt=0, le=10_000_000, allow_inf_nan=False),
+    age_max: int | None = Query(None, ge=18, le=60),
+    min_minutes: int = Query(800, ge=0, le=10000),
+    preferred_foot: Literal["Left", "Right", "Either"] | None = Query(None),
 ):
+    req = ScoutRequest(objective=objective, club=club, budget_eur=budget, wage_cap_pw=wage_cap,
+                       age_max=age_max, min_minutes=min_minutes, preferred_foot=preferred_foot)
+    profile = effective_profile(req)
     async def event_generator():
-        state, dossier = director_orchestrator.execute_recruitment_workflow(
-            objective=objective,
-            club=club,
-            budget_eur=budget,
-            wage_cap_pw=wage_cap
-        )
-
-        for m in state.event_milestones:
-            payload = {
-                "event": "milestone",
-                "data": m.model_dump()
-            }
-            yield f"data: {json.dumps(payload)}\n\n"
-            await asyncio.sleep(0.3)
-
-        final_payload = {
-            "event": "complete",
-            "data": {
-                "session_id": state.session_id,
-                "dossier": dossier.model_dump()
-            }
-        }
-        yield f"data: {json.dumps(final_payload)}\n\n"
-
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+        queue = asyncio.Queue()
+        loop = asyncio.get_running_loop()
+        def emit(milestone):
+            loop.call_soon_threadsafe(queue.put_nowait, {"event": "milestone", "data": milestone.model_dump()})
+        async def execute():
+            try:
+                state, dossier = await asyncio.to_thread(
+                    director_orchestrator.execute_recruitment_workflow,
+                    objective=req.objective, club=req.club, budget_eur=req.budget_eur,
+                    wage_cap_pw=req.wage_cap_pw, profile=profile, on_milestone=emit)
+                await queue.put({"event": "complete", "data": {
+                    "session_id": state.session_id, "dossier": dossier.model_dump()}})
+            except Exception:
+                import logging
+                logging.getLogger(__name__).exception("Recruitment search failed")
+                await queue.put({"event": "error", "data": {"message": "Search failed. Please try again."}})
+        task = asyncio.create_task(execute())
+        try:
+            while True:
+                payload = await queue.get()
+                yield f"data: {json.dumps(payload)}\n\n"
+                if payload["event"] in ("complete", "error"):
+                    break
+        finally:
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
+    return StreamingResponse(event_generator(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 @app.post("/api/simulate")
 def simulate_transfer(candidate_id: str, club: str = "Arsenal FC"):
@@ -115,29 +146,17 @@ def simulate_transfer(candidate_id: str, club: str = "Arsenal FC"):
     if not player:
         raise HTTPException(status_code=404, detail="Player not found")
     
-    from backend.app.schemas.dossier import RankedCandidate
-    from backend.app.analytics.league_adjustment import adjust_percentiles_for_league
+    from backend.app.analytics.scoring_engine import rank_candidates
+    from backend.app.schemas.recruitment import RecruitmentProfile
     from backend.app.analytics.transfer_simulator import simulate_squad_impact
-
-    adj_pct = adjust_percentiles_for_league(player.normalized_percentiles, player.league)
-    ranked = RankedCandidate(
-        player=player,
-        rank=1,
-        fit_score=85.0,
-        tactical_fit_score=85.0,
-        stat_fit_score=85.0,
-        financial_fit_score=80.0,
-        age_potential_score=85.0,
-        reliability_score=90.0,
-        reliability_summary="Robust sample",
-        league_adjusted_percentiles=adj_pct,
-        estimated_annual_cost_eur=player.market_value_eur / 5.0 + (player.weekly_wage_eur * 52.0),
-        why_recommended=["Target tactical profile match"],
-        risk_factors=["None detected"],
-        tactical_strengths=["Ball Progression", "Duel Dominance"]
-    )
-    sim = simulate_squad_impact(ranked, club=club)
-    return sim.model_dump()
+    profile = RecruitmentProfile(target_club=None, position_family=player.primary_position, position=player.primary_position,
+                                 tactical_role_name="Individual player simulation", age_max=max(25, player.age),
+                                 budget_max_eur=max(1, player.market_value_eur),
+                                 wage_cap_eur_pw=max(1, player.weekly_wage_eur), min_minutes_played=0)
+    candidates = rank_candidates([player], profile)
+    if not candidates:
+        raise HTTPException(status_code=422, detail="Player is outside the supported adult demo range.")
+    return simulate_squad_impact(candidates[0], club=club).model_dump()
 
 if __name__ == "__main__":
     import uvicorn

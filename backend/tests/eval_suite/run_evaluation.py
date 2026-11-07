@@ -1,110 +1,80 @@
-﻿import json
-import time
-from typing import Dict, Any, List
+"""Report observed outcomes without treating empty results or stress cases as passes."""
+import argparse
+import json
+from pathlib import Path
+from time import perf_counter
+
 from backend.app.agents.orchestrator import director_orchestrator
+from backend.app.analytics.eligibility import eligibility_failures
+from backend.app.data.bootstrap import initialize_data
 from backend.app.schemas.dossier import FinalRecruitmentDossier
 
-def run_evaluation_suite(benchmark_path: str = "backend/tests/eval_suite/benchmark_queries.json") -> Dict[str, Any]:
-    with open(benchmark_path, "r", encoding="utf-8") as f:
-        queries = json.load(f)
 
-    total_queries = len(queries)
-    p_at_1_matches = 0
-    p_at_3_matches = 0
-    total_candidates_checked = 0
-    constraint_satisfied_candidates = 0
-    schema_valid_runs = 0
-    groundedness_scores = []
-    deterministic_latencies_sec = []
+def evaluate_dossier(dossier, scenario):
+    profile = dossier.recruitment_profile
+    rows = []
+    for candidate in dossier.top_candidates:
+        player = candidate.player
+        # Independently check supplied benchmark limits as well as the parsed brief.
+        scenario_ok = (player.age <= scenario['max_age']
+                       and player.market_value_eur <= scenario['max_budget']
+                       and player.weekly_wage_eur <= scenario.get('wage_cap_pw', 120_000))
+        rows.append({'player_id':player.id,
+                     'effective_constraints_pass':not eligibility_failures(player, profile),
+                     'scenario_limits_pass':scenario_ok})
+    positions = [scenario['target_position'] in [c.player.primary_position, *c.player.secondary_positions]
+                 for c in dossier.top_candidates[:3]]
+    return {'status':dossier.status, 'candidate_count':len(rows), 'candidates':rows,
+            'position_match_at_1':bool(positions and positions[0]),
+            'position_precision_at_3':sum(positions)/len(positions) if positions else 0}
 
-    print(f"=== RUNNING RECRUITMENT DECISION SYSTEM BENCHMARK ({total_queries} SCENARIOS) ===")
 
-    category_stats = {}
-
-    for i, q in enumerate(queries, 1):
-        cat = q.get("category", "standard")
-        if cat not in category_stats:
-            category_stats[cat] = {"total": 0, "p1_match": 0, "schema_valid": 0}
-        category_stats[cat]["total"] += 1
-
-        t0 = time.time()
+def run_evaluation_suite(benchmark_path=None):
+    initialize_data()
+    benchmark_path = benchmark_path or Path(__file__).with_name('benchmark_queries.json')
+    queries = json.loads(Path(benchmark_path).read_text(encoding='utf-8-sig'))
+    runs, durations = [], []
+    for q in queries:
+        start = perf_counter()
         try:
-            state, dossier = director_orchestrator.execute_recruitment_workflow(
-                objective=q["objective"],
-                club="Arsenal FC",
-                budget_eur=q["max_budget"],
-                wage_cap_pw=120_000.0
-            )
-            elapsed = time.time() - t0
-            deterministic_latencies_sec.append(elapsed)
-            
-            assert isinstance(dossier, FinalRecruitmentDossier)
-            schema_valid_runs += 1
-            category_stats[cat]["schema_valid"] += 1
-
-            top_candidates = dossier.top_candidates
-            if top_candidates:
-                top_1 = top_candidates[0].player
-                is_p1 = (top_1.primary_position == q["target_position"] or q["target_position"] in top_1.secondary_positions)
-                if is_p1:
-                    p_at_1_matches += 1
-                    category_stats[cat]["p1_match"] += 1
-                
-                top_3 = top_candidates[:3]
-                p3_pos_count = sum(1 for c in top_3 if c.player.primary_position == q["target_position"] or q["target_position"] in c.player.secondary_positions)
-                p_at_3_matches += (p3_pos_count / len(top_3))
-
-                for c in top_3:
-                    total_candidates_checked += 1
-                    # Relaxed constraint satisfaction accounting for stress-test fallback cases
-                    if c.player.age <= (q["max_age"] + 2) or cat in ["budget_stress", "age_stress", "contradictory_stress"]:
-                        constraint_satisfied_candidates += 1
-
-            for v in dossier.verifications:
-                groundedness_scores.append(v.groundedness_score)
-
-            print(f"[{i:02d}/{total_queries:02d}] [{cat:16s}] '{q['objective'][:45]}...' -> Top: {top_candidates[0].player.name if top_candidates else 'None'} ({elapsed*1000:.1f}ms)")
-        except Exception as e:
-            print(f"[{i:02d}/{total_queries:02d}] ERROR on query {q['id']}: {e}")
-
-    precision_1 = round((p_at_1_matches / total_queries) * 100.0, 1)
-    precision_3 = round((p_at_3_matches / total_queries) * 100.0, 1)
-    constraint_rate = round((constraint_satisfied_candidates / max(1, total_candidates_checked)) * 100.0, 1)
-    schema_valid_rate = round((schema_valid_runs / total_queries) * 100.0, 1)
-    avg_groundedness = round(sum(groundedness_scores) / max(1, len(groundedness_scores)), 1)
-    avg_det_latency_ms = round((sum(deterministic_latencies_sec) / max(1, len(deterministic_latencies_sec))) * 1000.0, 2)
-
+            _, dossier = director_orchestrator.execute_recruitment_workflow(
+                objective=q['objective'], budget_eur=q['max_budget'],
+                wage_cap_pw=q.get('wage_cap_pw', 120_000))
+            FinalRecruitmentDossier.model_validate(dossier.model_dump())
+            durations.append((perf_counter()-start)*1000)
+            runs.append(dict(id=q['id'], category=q['category'], **evaluate_dossier(dossier,q)))
+        except Exception as exc:
+            runs.append({'id':q['id'], 'category':q['category'], 'status':'error', 'error':str(exc),
+                         'candidates':[], 'candidate_count':0, 'position_match_at_1':False,
+                         'position_precision_at_3':0})
+    candidates = [c for r in runs for c in r['candidates']]
+    def pct(n, total):
+        return round(100*n/total, 1) if total else None
     results = {
-        "total_scenarios_evaluated": total_queries,
-        "precision_at_1_pct": precision_1,
-        "precision_at_3_pct": precision_3,
-        "constraint_satisfaction_rate_pct": constraint_rate,
-        "schema_valid_response_rate_pct": schema_valid_rate,
-        "critic_grounding_audit_avg_score": avg_groundedness,
-        "deterministic_pipeline_latency_avg_ms": avg_det_latency_ms,
-        "llm_network_roundtrip_latency_estimated_sec": "0.8s - 1.5s (when streaming live Gemini API calls)",
-        "category_breakdown": category_stats
+        'total_scenarios_evaluated':len(runs),
+        'schema_valid_response_rate_pct':pct(sum(r['status'] != 'error' for r in runs), len(runs)),
+        'runs_with_candidates':sum(r['candidate_count'] > 0 for r in runs),
+        'no_match_runs':sum(r['status'] == 'no_matches' for r in runs),
+        'clarification_runs':sum(r['status'] == 'needs_clarification' for r in runs),
+        'error_runs':sum(r['status'] == 'error' for r in runs),
+        'candidates_checked':len(candidates),
+        'effective_constraint_satisfaction_pct':pct(sum(c['effective_constraints_pass'] for c in candidates),len(candidates)),
+        'scenario_limit_satisfaction_pct':pct(sum(c['scenario_limits_pass'] for c in candidates),len(candidates)),
+        'position_match_at_1_pct_all_scenarios':pct(sum(r['position_match_at_1'] for r in runs),len(runs)),
+        'position_precision_at_3_pct_all_scenarios':pct(sum(r['position_precision_at_3'] for r in runs),len(runs)),
+        'pipeline_latency_mean_ms':round(sum(durations)/len(durations),2) if durations else None,
+        'interpretation':'Position agreement is not recruitment quality. Empty results and clarification runs remain in the position-metric denominator; no candidate-compliance rate is reported when no candidates exist. Scenario limits are checked separately from the parsed profile. Text-only preferences not represented in a profile are not measured.',
+        'runs':runs,
     }
-
-    print("\n==========================================================================")
-    print("                EXPANDED BENCHMARK EVALUATION SUMMARY (50 SCENARIOS)      ")
-    print("==========================================================================")
-    print(f"  Total Scenarios Evaluated          : {results['total_scenarios_evaluated']}")
-    print(f"  Precision@1 (Position Match)       : {results['precision_at_1_pct']}%")
-    print(f"  Precision@3 (Top Candidates Match) : {results['precision_at_3_pct']}%")
-    print(f"  Constraint Satisfaction Rate       : {results['constraint_satisfaction_rate_pct']}%")
-    print(f"  Schema-Valid Response Rate         : {results['schema_valid_response_rate_pct']}%")
-    print(f"  Critic Grounding Audit Score       : {results['critic_grounding_audit_avg_score']}%")
-    print(f"  Deterministic Pipeline Latency     : {results['deterministic_pipeline_latency_avg_ms']} ms")
-    print(f"  LLM Network Roundtrip Latency (Est): {results['llm_network_roundtrip_latency_estimated_sec']}")
-    print("--------------------------------------------------------------------------")
-    print("  Category Performance Breakdown:")
-    for cat_name, c_data in category_stats.items():
-        acc = round((c_data['p1_match'] / max(1, c_data['total'])) * 100.0, 1)
-        print(f"    - {cat_name:22s}: {c_data['p1_match']}/{c_data['total']} P@1 ({acc}%), Schema Valid: {c_data['schema_valid']}/{c_data['total']}")
-    print("==========================================================================\n")
-
+    print(json.dumps(results, indent=2))
     return results
 
-if __name__ == "__main__":
-    run_evaluation_suite()
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--output', type=Path)
+    args = parser.parse_args()
+    results = run_evaluation_suite()
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(results, indent=2),encoding='utf-8')

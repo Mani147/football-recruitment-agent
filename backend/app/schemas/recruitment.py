@@ -66,11 +66,11 @@ class RecruitmentProfile(BaseModel):
     position_family: str = Field(description="Target tactical position family, e.g. FB, CB, DM, WINGER, ST, GK")
     position: str = Field(description="Primary specific position code or representative label, e.g. LB, RB, DM, CB, RW")
     tactical_role_name: str = Field(description="Role archetype, e.g. 'Inverted Attacking Fullback', 'Box-to-Box Ball Winner'")
-    age_min: int = 18
-    age_max: int = 25
-    budget_max_eur: float = 50_000_000.0
-    wage_cap_eur_pw: float = 120_000.0
-    min_minutes_played: int = 800
+    age_min: int = Field(default=18, ge=16, le=60)
+    age_max: int = Field(default=25, ge=16, le=60)
+    budget_max_eur: float = Field(default=50_000_000.0, gt=0, le=1_000_000_000, allow_inf_nan=False)
+    wage_cap_eur_pw: float = Field(default=120_000.0, gt=0, le=10_000_000, allow_inf_nan=False)
+    min_minutes_played: int = Field(default=800, ge=0, le=10000)
     target_percentiles: TargetPercentiles = TargetPercentiles()
     priority_weights: PriorityWeights = PriorityWeights()
     preferred_foot: Optional[str] = None

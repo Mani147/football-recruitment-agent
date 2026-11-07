@@ -74,12 +74,12 @@ class TacticalRequirementsAgent:
             "fullback", "full back", "full-back",
             "left back", "left-back", "lwb",
             "right back", "right-back", "rwb",
-            "wing back", "wing-back", "overlapping back"
+            "wing back", "wing-back", "overlapping back", "lb", "rb"
         ) or (has_word(lower, "lb") and has_word(lower, "back", "fullback", "defender")) \
           or (has_word(lower, "rb") and has_word(lower, "back", "fullback", "defender")):
-            is_left = has_word(lower, "left", "lwb") or (has_word(lower, "lb") and not has_word(lower, "rb"))
-            is_right = has_word(lower, "right", "rwb") or (has_word(lower, "rb") and not has_word(lower, "lb"))
-            specific_pos = "LB" if is_left else ("RB" if is_right else "LB")
+            is_left = has_word(lower, "left back", "left-back", "left wing back", "left wing-back", "lwb", "lb")
+            is_right = has_word(lower, "right back", "right-back", "right wing back", "right wing-back", "rwb", "rb")
+            specific_pos = "LB" if is_left else ("RB" if is_right else "FB")
             # Use sided subgroup so SQL only returns left-side or right-side players
             pos_family = "LB" if is_left else ("RB" if is_right else "FB")
 
@@ -157,7 +157,7 @@ class TacticalRequirementsAgent:
         # 4. DEFENSIVE MIDFIELDER (DM)
         elif has_word(lower,
             "defensive midfielder", "dm", "holding midfielder", "pivot",
-            "ball winner", "ball-winner", "no 6", "number 6", "number six", "regista", "destroyer"
+            "ball winner", "ball-winner", "deep-lying playmaker", "no 6", "number 6", "number six", "regista", "destroyer"
         ):
             pos_family = "DM"
             specific_pos = "DM"
@@ -238,9 +238,9 @@ class TacticalRequirementsAgent:
             "wide attacker", "wide forward", "rw", "lw"
         ):
             pos_family = "WINGER"
-            is_left = has_word(lower, "left", "lw")
-            is_right = has_word(lower, "right", "rw")
-            specific_pos = "LW" if is_left else ("RW" if is_right else "RW")
+            is_left = has_word(lower, "left winger", "left wing", "lw")
+            is_right = has_word(lower, "right winger", "right wing", "rw")
+            specific_pos = "LW" if is_left else ("RW" if is_right else "WINGER")
             role = f"Explosive 1v1 Inverted {'Left' if is_left else 'Right'} Winger"
             target_pct = TargetPercentiles(
                 progressive_passes=75.0,
@@ -261,10 +261,10 @@ class TacticalRequirementsAgent:
             )
 
         # 8. STRIKER / CENTER FORWARD (ST)
-        elif any(w in lower for w in [
+        elif has_word(lower,
             "striker", "st", "cf", "centre forward", "center forward",
             "number 9", "number nine", "no 9", "target man", "goalscorer"
-        ]):
+        ):
             pos_family = "ST"
             specific_pos = "ST"
             role = "Clinical Complete Center Forward"
@@ -294,23 +294,32 @@ class TacticalRequirementsAgent:
             target_pct = TargetPercentiles()
             weights = PriorityWeights()
 
-        # Parse Age
+        # U24 and "under 24 years" exclude age 24; "age <=24" is inclusive.
         age_max = 25
         match_u = re.search(r'\bu(\d{2})\b', lower)
-        match_under = re.search(r'under\s+(\d{2})\s+years?', lower)
-        match_age = re.search(r'age\s*(?:<=|<|under)?\s*(\d{2})', lower)
-        if match_u:
-            age_max = int(match_u.group(1))
-        elif match_under:
-            age_max = int(match_under.group(1))
+        match_under = re.search(r'\bunder\s+(\d{2})\s*(?:years?\b|(?=of age))', lower)
+        match_age = re.search(r'\bage\s*(<=|<|under)?\s*(\d{2})\b', lower)
+        if match_u or match_under:
+            age_max = int((match_u or match_under).group(1)) - 1
         elif match_age:
-            age_max = int(match_age.group(1))
+            age_max = int(match_age.group(2)) - (1 if match_age.group(1) in ('<', 'under') else 0)
 
-        # Parse Budget
-        custom_budget = budget_eur
-        m_b = re.search(r'(?:under|budget of|max|for|below)\s*(?:€|\$|£)?\s*(\d+)\s*(?:m|million)?', lower)
-        if m_b:
-            custom_budget = float(m_b.group(1)) * 1_000_000.0
+        # Only monetary amounts qualify. Never interpret age/minutes as money.
+        if re.search(r'[$£]|\b(?:usd|gbp)\b', lower):
+            raise ValueError("Budgets must be in EUR. Convert dollar or pound amounts before searching.")
+        amount_pattern = (
+            r'(?:€\s*|\beur\s*)(\d[\d,]*(?:\.\d+)?)\s*(million|m)?\b'
+            r'|\b(\d+(?:\.\d+)?)\s*(million|m)\b'
+        )
+        budgets = []
+        for match in re.finditer(amount_pattern, lower):
+            # A weekly salary mention is not a transfer fee.
+            if re.match(r'\s*(?:/\s*(?:wk|week|w)|per\s+week|pw\b|p/w)', lower[match.end():]):
+                continue
+            a, b, c, d = match.groups()
+            budgets.append(float((a or c).replace(',', '')) * (1_000_000 if (b or d) else 1))
+        # The explicit form budget is a hard ceiling, even when prose asks for more.
+        custom_budget = min([budget_eur] + budgets)
 
         preferred_foot = "Left" if "left-footed" in lower or "left foot" in lower else ("Right" if "right-footed" in lower or "right foot" in lower else None)
 

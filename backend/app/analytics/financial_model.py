@@ -1,10 +1,10 @@
-﻿from typing import Dict, Tuple
+from typing import Dict, Tuple
 from backend.app.schemas.player import PlayerProfile
 
 def calculate_amortization_and_cost(player: PlayerProfile, contract_years: int = 5) -> Dict[str, float]:
     fee = player.market_value_eur
     annual_salary = player.weekly_wage_eur * 52.0
-    annual_amortization = fee / float(max(1, contract_years))
+    annual_amortization = fee / float(min(5, max(1, contract_years)))
     total_annual_book_cost = annual_amortization + annual_salary
     
     return {
@@ -16,6 +16,8 @@ def calculate_amortization_and_cost(player: PlayerProfile, contract_years: int =
     }
 
 def evaluate_financial_fit(player: PlayerProfile, budget_max: float, wage_cap_pw: float) -> Tuple[float, str]:
+    if budget_max <= 0 or wage_cap_pw <= 0:
+        raise ValueError("Budget and weekly wage cap must be positive.")
     fee = player.market_value_eur
     wage = player.weekly_wage_eur
     

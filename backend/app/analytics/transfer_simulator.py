@@ -1,4 +1,4 @@
-﻿from typing import Dict
+from typing import Dict
 from backend.app.schemas.player import PlayerProfile
 from backend.app.schemas.dossier import RankedCandidate, SquadImpactProxy
 
@@ -30,11 +30,13 @@ def simulate_squad_impact(candidate: RankedCandidate, club: str = "Arsenal FC", 
     
     summary = (
         f"Projected squad impact (Proxy): Defense {base['defense_index']} -> {proj_def} "
-        f"(+{round(proj_def - base['defense_index'], 1)}), Progression {base['progression_index']} -> {proj_prog} "
-        f"(+{round(proj_prog - base['progression_index'], 1)}). Role overlap penalty: -{overlap_penalty}."
+        f"({round(proj_def - base['defense_index'], 1)}), Progression {base['progression_index']} -> {proj_prog} "
+        f"({round(proj_prog - base['progression_index'], 1)}). Role overlap penalty: -{overlap_penalty}."
     )
     
     return SquadImpactProxy(
+        baseline_club=club if club in SQUAD_BASELINES else "Arsenal FC",
+        baseline_is_fallback=club not in SQUAD_BASELINES,
         candidate_id=candidate.player.id,
         candidate_name=candidate.player.name,
         baseline_squad_defense=base["defense_index"],
