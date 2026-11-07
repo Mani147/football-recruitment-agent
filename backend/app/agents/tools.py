@@ -73,43 +73,51 @@ class RecruitmentTools:
         return [r.model_dump() for r in ranked]
 
     @staticmethod
-    def verify_candidate(candidate_id: str, claimed_metrics: Dict[str, Any], budget_max: float) -> Dict[str, Any]:
-        """
-        Critic tool: Verifies that claims made in scouting text match actual database values.
-        """
+    def verify_candidate(candidate_id: str, claimed_metrics: Dict[str, Any], budget_max: float,
+                         wage_cap_pw: Optional[float] = None) -> Dict[str, Any]:
+        """Check supplied raw-metric claims against the stored demo record, not external truth."""
+        import math
         player = db.get_player_by_id(candidate_id)
         if not player:
-            return {"candidate_id": candidate_id, "is_verified": False, "error": "Player record missing"}
-
-        verified_claims = []
-        flagged_caveats = []
-        is_verified = True
-
-        # Check budget compliance
-        budget_compliant = player.market_value_eur <= (budget_max * 1.10)
-        if not budget_compliant:
-            flagged_caveats.append(f"Valuation (€{player.market_value_eur/1e6:.1f}M) exceeds base budget (€{budget_max/1e6:.1f}M)")
-
-        # Check sample size
-        sample_size_flag = None
+            return CriticVerificationReport(
+                candidate_id=candidate_id, candidate_name="Unknown player", is_verified=False,
+                groundedness_score=0, budget_compliance_verified=False,
+                wage_compliance_verified=False, flagged_caveats=["Player record missing."]
+            ).model_dump()
+        actual = player.raw_metrics.model_dump()
+        verified, caveats = [], []
+        matched = 0
+        for key, value in claimed_metrics.items():
+            expected = actual.get(key)
+            valid = (key in actual and isinstance(value, (int, float)) and not isinstance(value, bool)
+                     and math.isfinite(value) and math.isclose(value, expected, rel_tol=1e-6, abs_tol=1e-6))
+            if valid:
+                matched += 1
+                verified.append(f"{key}: {expected} matches the stored record.")
+            else:
+                caveats.append(f"Unsupported or mismatched claim: {key}.")
+        if not claimed_metrics:
+            caveats.append("No metric claims supplied for verification.")
+        budget_ok = player.market_value_eur <= budget_max
+        wage_ok = wage_cap_pw is not None and player.weekly_wage_eur <= wage_cap_pw
+        if not budget_ok:
+            caveats.append("Estimated fee exceeds the effective budget.")
+        if not wage_ok:
+            caveats.append("Weekly wage exceeds the cap or no wage cap was supplied.")
+        sample_flag = None
         if player.raw_metrics.minutes_played < 1000:
-            sample_size_flag = f"Small sample caution: only {player.raw_metrics.minutes_played} league minutes logged."
-            flagged_caveats.append(sample_size_flag)
-
-        verified_claims.append(f"Confirmed league stats from {player.league} ({player.raw_metrics.minutes_played} mins).")
-        verified_claims.append(f"Market fee benchmark confirmed at €{player.market_value_eur/1e6:.1f}M.")
-
-        report = CriticVerificationReport(
-            candidate_id=player.id,
-            candidate_name=player.name,
-            is_verified=is_verified,
-            groundedness_score=100.0 if not flagged_caveats else 85.0,
-            verified_claims=verified_claims,
-            flagged_caveats=flagged_caveats,
-            budget_compliance_verified=budget_compliant,
-            sample_size_flag=sample_size_flag
-        )
-        return report.model_dump()
+            sample_flag = f"Small sample: {player.raw_metrics.minutes_played} league minutes."
+            caveats.append(sample_flag)
+        checked = len(claimed_metrics)
+        return CriticVerificationReport(
+            candidate_id=player.id, candidate_name=player.name,
+            is_verified=bool(checked) and matched == checked and budget_ok and wage_ok,
+            groundedness_score=round(100 * matched / checked, 1) if checked else 0,
+            checked_claim_count=checked, matched_claim_count=matched,
+            verified_claims=verified, flagged_caveats=caveats,
+            budget_compliance_verified=budget_ok, wage_compliance_verified=wage_ok,
+            sample_size_flag=sample_flag
+        ).model_dump()
 
     @staticmethod
     def run_squad_impact_sim(ranked_candidate_data: Dict[str, Any], club: str = "Arsenal FC") -> Dict[str, Any]:

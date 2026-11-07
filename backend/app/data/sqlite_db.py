@@ -9,7 +9,7 @@ from backend.app.schemas.player import PlayerProfile, RawPlayerMetrics, Normaliz
 class FootballDatabase:
     def __init__(self, db_path: Optional[str] = None):
         self.db_path = db_path or settings.DATABASE_PATH
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        os.makedirs(os.path.dirname(self.db_path) or ".", exist_ok=True)
         self.init_db()
 
     def get_connection(self) -> sqlite3.Connection:
@@ -138,13 +138,13 @@ class FootballDatabase:
             params.append(max_age)
 
         if max_budget_eur is not None:
-            # Allow up to 15% budget stretch for scouting consideration
+            # Requested budget is a hard ceiling.
             query += " AND market_value_eur <= ?"
-            params.append(max_budget_eur * 1.15)
+            params.append(max_budget_eur)
 
         if max_wage_eur_pw is not None:
             query += " AND weekly_wage_eur <= ?"
-            params.append(max_wage_eur_pw * 1.20)
+            params.append(max_wage_eur_pw)
 
         with self.get_connection() as conn:
             cur = conn.execute(query, params)

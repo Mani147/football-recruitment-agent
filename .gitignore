@@ -58,3 +58,10 @@ yarn-error.log*
 *.swo
 .DS_Store
 Thumbs.db
+
+# Local evaluation and scratch outputs
+work/
+
+# Fetch source data directly from StatsBomb; do not redistribute raw or derived records.
+backend/app/data/statsbomb_pl_2015_16.json
+backend/app/data/openplay_2023_2026.json

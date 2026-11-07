@@ -1,4 +1,4 @@
-﻿from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple
 from backend.app.schemas.player import PlayerProfile, NormalizedPlayerPercentiles
 from backend.app.schemas.recruitment import RecruitmentProfile, TargetPercentiles, PriorityWeights
 from backend.app.schemas.dossier import RankedCandidate, TacticalMetricMatch
@@ -82,13 +82,23 @@ def calculate_age_potential_score(age: int) -> float:
 def rank_candidates(candidates: List[PlayerProfile], profile: RecruitmentProfile) -> List[RankedCandidate]:
     ranked_list = []
     
+    from backend.app.analytics.eligibility import eligibility_failures
     for player in candidates:
+        if eligibility_failures(player, profile):
+            continue
         adj_pct = adjust_percentiles_for_league(player.normalized_percentiles, player.league)
         s_tactical, breakdown = calculate_tactical_match(adj_pct, profile.target_percentiles, profile.priority_weights)
-        s_stat = round((adj_pct.progressive_passes + adj_pct.progressive_carries + 
-                        adj_pct.tackles_interceptions + adj_pct.ball_recoveries_pressures + 
-                        adj_pct.possession_retention) / 5.0, 1)
-                        
+        # Use the role's priorities for direct statistical quality as well as target matching.
+        w = profile.priority_weights
+        total_weight = w.defensive + w.progression + w.pressing_recovery + w.possession_retention + w.creation_goal
+        s_stat = round((
+            w.defensive * (adj_pct.tackles_interceptions + adj_pct.aerial_dominance) / 2
+            + w.progression * (adj_pct.progressive_passes + adj_pct.progressive_carries) / 2
+            + w.pressing_recovery * adj_pct.ball_recoveries_pressures
+            + w.possession_retention * adj_pct.possession_retention
+            + w.creation_goal * (adj_pct.chance_creation_xa + adj_pct.goal_threat_xg) / 2
+        ) / (total_weight or 1), 1)
+
         s_fin, fin_status = evaluate_financial_fit(player, profile.budget_max_eur, profile.wage_cap_eur_pw)
         s_age = calculate_age_potential_score(player.age)
         r_score, r_summary = calculate_reliability_score(player)
@@ -111,7 +121,7 @@ def rank_candidates(candidates: List[PlayerProfile], profile: RecruitmentProfile
         if adj_pct.progressive_passes >= 80:
             why_rec.append(f"Outstanding ball progression ({adj_pct.progressive_passes}th percentile).")
         if player.age <= 23:
-            why_rec.append(f"Prime developmental age ({player.age} yrs) with long-term contract resale value.")
+            why_rec.append(f"Prime developmental age ({player.age} yrs) with potential for development; resale value is uncertain.")
         if not why_rec:
             why_rec.append(f"Balanced statistical profile across domestic campaign ({player.league}).")
             
@@ -125,7 +135,7 @@ def rank_candidates(candidates: List[PlayerProfile], profile: RecruitmentProfile
         if get_league_coefficient(player.league) < 0.85:
             risks.append(f"League translation risk: coming from {player.league}.")
         if not risks:
-            risks.append("No immediate statistical or financial red flags detected.")
+            risks.append("No threshold flags in the stored sample; availability, medical and contract risks are not assessed.")
             
         strengths = []
         if adj_pct.tackles_interceptions >= 75:
@@ -160,7 +170,7 @@ def rank_candidates(candidates: List[PlayerProfile], profile: RecruitmentProfile
         )
         ranked_list.append(ranked_candidate)
         
-    ranked_list.sort(key=lambda x: x.fit_score, reverse=True)
+    ranked_list.sort(key=lambda x: (-x.fit_score, x.player.id))
     for idx, c in enumerate(ranked_list):
         c.rank = idx + 1
         

@@ -23,12 +23,12 @@ class SourceMetadata(BaseModel):
 
 REGISTRY: Dict[DataSourceType, SourceMetadata] = {
     DataSourceType.STATSBOMB_MATCH_EVENT: SourceMetadata(
-        source_name="StatsBomb Open Data",
+        source_name="Illustrative event-metric benchmark",
         source_type=DataSourceType.STATSBOMB_MATCH_EVENT,
-        license_or_origin="Open Data Repository (2025/26 Season)",
-        confidence_grade=ConfidenceGrade.HIGH,
+        license_or_origin="Hand-authored portfolio demonstration data; not a verified StatsBomb feed",
+        confidence_grade=ConfidenceGrade.LOW,
         season="2025/2026",
-        description="Match events, lineups, per-90 metrics and spatial event logs."
+        description="Illustrative per-90 values and percentiles stored in seed_database.py; no live event ingestion or independent validation."
     ),
     DataSourceType.EXTERNAL_MARKET_ESTIMATE: SourceMetadata(
         source_name="External Market Intelligence Benchmark",
@@ -39,12 +39,12 @@ REGISTRY: Dict[DataSourceType, SourceMetadata] = {
         description="Estimated player market valuation, contract expiry, and weekly wages."
     ),
     DataSourceType.DERIVED_SEMANTIC_SYNTHESIS: SourceMetadata(
-        source_name="Statistical Style Synthesis (Option C)",
+        source_name="Demo scouting narratives",
         source_type=DataSourceType.DERIVED_SEMANTIC_SYNTHESIS,
-        license_or_origin="Generated from deterministic per-90 percentiles + Gemini Embedding",
+        license_or_origin="Hand-authored narratives indexed with scikit-learn TF-IDF",
         confidence_grade=ConfidenceGrade.HIGH,
         season="2025/2026",
-        description="Synthesized qualitative scout narratives embedded via gemini-embedding-2-preview."
+        description="Local word and phrase similarity; no Gemini embeddings or live LLM calls."
     ),
     DataSourceType.DETERMINISTIC_ANALYTICS: SourceMetadata(
         source_name="Python Analytics Engine",

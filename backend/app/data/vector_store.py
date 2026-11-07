@@ -1,4 +1,4 @@
-﻿import numpy as np
+import numpy as np
 from typing import List, Dict, Tuple, Optional
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -14,6 +14,8 @@ class SemanticScoutVectorStore:
 
     def fit(self, players: List[PlayerProfile]):
         self.players = players
+        self.is_fitted = False
+        self.tfidf_matrix = None
         if not players:
             return
         corpus = [p.scouting_narrative for p in players]
