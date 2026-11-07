@@ -223,3 +223,40 @@ def test_goal_threat_changes_attacking_statistical_score(client):
     b = rank_candidates([strong],profile)[0]
     assert b.stat_fit_score > a.stat_fit_score
     assert b.fit_score > a.fit_score
+
+
+@pytest.mark.parametrize('group', ['goalkeepers','fullbacks','centrebacks','midfielders','wingers','strikers'])
+def test_comparison_groups_and_server_adjustments(client,group):
+    from backend.app.analytics.league_adjustment import adjust_percentiles_for_league
+    from backend.app.schemas.player import PlayerProfile
+    response = client.get('/api/compare/players',params={'group':group})
+    assert response.status_code == 200
+    data = response.json()
+    assert data['players']
+    assert data['groups'][group]['count'] == len(data['players'])
+    allowed = set(data['groups'][group]['positions'])
+    for row in data['players']:
+        player = PlayerProfile(**row['player'])
+        assert {player.primary_position,*player.secondary_positions} & allowed
+        assert row['league_adjusted_percentiles'] == adjust_percentiles_for_league(player.normalized_percentiles,player.league).model_dump()
+        assert 'fit_score' not in row  # Browsing is not ranking for an invented mandate.
+
+
+def test_comparison_secondary_positions_and_input_validation(client):
+    broad = client.get('/api/compare/players',params={'group':'midfielders'}).json()
+    primary = client.get('/api/compare/players',params={'group':'midfielders','include_secondary':'false'}).json()
+    primary_ids = {r['player']['id'] for r in primary['players']}
+    assert primary_ids <= {r['player']['id'] for r in broad['players']}
+    assert all(r['player']['primary_position'] in {'DM','CM','AM'} for r in primary['players'])
+    assert len(broad['players']) > len(primary['players'])
+    assert client.get('/api/compare/players',params={'group':'unknown'}).status_code == 422
+    assert client.get('/compare').status_code == 200
+    assert '/static/compare.js' in client.get('/compare').text
+
+
+def test_comparison_empty_dataset_is_explicit(client,monkeypatch):
+    import backend.app.main as main
+    monkeypatch.setattr(main.db,'get_all_players',lambda:[])
+    data = client.get('/api/compare/players').json()
+    assert data['players'] == [] and data['dataset_count'] == 0
+    assert all(g['count']==0 for g in data['groups'].values())

@@ -95,6 +95,9 @@
 }
 
 /* A quiet passing drill on a miniature pitch, using native SVG and CSS. */
+.workspace-nav { display: flex; flex-wrap: wrap; gap: 24px; border-bottom: 1px solid var(--line); }
+.workspace-nav a { padding: 15px 0 12px; color: var(--muted); font-size: 12px; text-decoration: none; border-bottom: 2px solid transparent; }
+.workspace-nav a[aria-current="page"] { color: var(--green); border-color: var(--green); font-weight: 700; }
 .topbar { background-image: linear-gradient(110deg, transparent 45%, #7eaa6e0d 80%, transparent); }
 .crest-football { width: 41px; height: 41px; padding: 7px; border-radius: 12px; box-shadow: 0 3px 10px #163f2312; }
 .crest-football svg { display: block; width: 27px; height: 27px; }

@@ -28,6 +28,25 @@ function radarContext() {
   return context;
 }
 
+test('position comparison radar supports fewer axes and does not invent a role target', () => {
+  const context = radarContext();
+  const html = vm.runInContext('renderRadar(candidate,null,candidate,RADAR_METRICS.slice(0,3))',context);
+  assert.equal((html.match(/class="radar-point"/g)||[]).length,3);
+  assert.equal((html.match(/scope="row"/g)||[]).length,3);
+  assert.doesNotMatch(html,/class="radar-target"|Role target|<th scope="col">Target/);
+  assert.match(html,/3 league-adjusted percentile axes/);
+});
+
+test('comparison selection stays within the position pool and never compares a player to themselves', () => {
+  const context = vm.createContext({document:{getElementById:()=>({addEventListener(){}})},
+    fetch:()=>new Promise(()=>{}),window:{}, URLSearchParams});
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../app/static/compare.js'),'utf8'),context);
+  const result = vm.runInContext(`matchingSelection([{player:{id:'a'}},{player:{id:'b'}}],'b','b').map(r=>r.player.id)`,context);
+  assert.deepEqual(Array.from(result),['b','a']);
+  assert.equal(vm.runInContext(`matchingSelection([{player:{id:'a'}}],'missing','a')[1]`,context),undefined);
+  assert.equal(vm.runInContext(`matchingSelection([],'','')[0]`,context),undefined);
+});
+
 test('radar maps all eight actual metrics to the 0–100 scale and provides exact values', () => {
   const html = vm.runInContext('renderRadar(candidate,profile)', radarContext());
   assert.match(html, /points="320.00,280.00/); // First metric is zero, at center.

@@ -37,6 +37,34 @@ def serve_index():
         return FileResponse(index_file)
     return {"status": "ok", "project": settings.PROJECT_NAME}
 
+@app.get("/compare")
+def serve_comparison():
+    return FileResponse(os.path.join(static_dir, "compare.html"))
+
+
+@app.get("/api/compare/players")
+def comparison_players(
+    group: Literal['goalkeepers','fullbacks','centrebacks','midfielders','wingers','strikers'] = 'midfielders',
+    include_secondary: bool = True,
+):
+    from backend.app.analytics.comparison import POSITION_COMPARISON_GROUPS, matches_comparison_group
+    from backend.app.analytics.league_adjustment import adjust_percentiles_for_league
+    from backend.app.analytics.reliability import calculate_reliability_score
+    players = db.get_all_players()
+    pool = sorted((p for p in players if matches_comparison_group(p,group,include_secondary)), key=lambda p:(p.name.casefold(),p.id))
+    records = []
+    for player in pool:
+        score, summary = calculate_reliability_score(player)
+        records.append({'player':player.model_dump(),
+                        'league_adjusted_percentiles':adjust_percentiles_for_league(player.normalized_percentiles,player.league).model_dump(),
+                        'reliability_score':score, 'reliability_summary':summary})
+    return {'group':group, 'include_secondary':include_secondary, 'players':records,
+            'groups':{key:dict(value,count=sum(matches_comparison_group(p,key,include_secondary) for p in players))
+                      for key,value in POSITION_COMPARISON_GROUPS.items()},
+            'dataset_count':len(players),
+            'dataset_notice':'Illustrative demo records, not independently verified or live scouting data. Percentiles were hand-authored, not computed from a documented position-specific population.'}
+
+
 class ScoutRequest(BaseModel):
     objective: str = Field(min_length=3, max_length=2000, pattern=r"\S")
     club: str = Field(default="Arsenal FC", min_length=1, max_length=100, pattern=r"\S")

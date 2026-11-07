@@ -27,6 +27,12 @@ Open http://127.0.0.1:8000. No API key or separate seed command is required. Sta
 
 Text parsing is deterministic and intentionally limited. `U24` and `under 24 years` mean age 23 or younger. `age <=24` is inclusive. The age form field overrides text. Foot selection overrides text; “No preference” removes a text foot requirement. The stricter of a monetary amount in the text and the form fee ceiling is used. Text-only wages are not enforced: use the wage cap field. Monetary inputs must be EUR; dollar and pound prompts return a validation message. A club named in the role text can override the club field, and is shown during review.
 
+## Position-wise player comparison
+
+Open `/compare` or choose **Player comparison** in the workspace navigation. Browse goalkeepers, fullbacks/wingbacks, centrebacks, midfielders (DM/CM/AM), wingers and strikers (ST/CF). Toggle secondary positions on or off. Choose two different players to inspect their position-specific radar, exact percentiles, raw per-90 statistics, playing time, estimated fees and wages. All stored players in the group are available; recruitment age and budget limits do not apply. There is no overall-winner score and no invented role target.
+
+Goalkeeper charts show only available distribution, retention and aerial proxies. The dataset lacks saves, post-shot xG, cross claiming and sweeping data, so it cannot support a complete goalkeeper assessment. Across all positions, percentiles are hand-authored demonstration values, not calculations from a documented comparison population.
+
 ## Appearance and player strengths
 
 Use the header's Dark mode / Light mode button to switch themes. The first visit follows your system preference; an explicit choice is saved in this browser. The toggle still works when browser storage is blocked, but cannot persist across reloads in that case.
