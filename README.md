@@ -27,6 +27,12 @@ Open http://127.0.0.1:8000. No API key or separate seed command is required. Sta
 
 Text parsing is deterministic and intentionally limited. `U24` and `under 24 years` mean age 23 or younger. `age <=24` is inclusive. The age form field overrides text. Foot selection overrides text; “No preference” removes a text foot requirement. The stricter of a monetary amount in the text and the form fee ceiling is used. Text-only wages are not enforced: use the wage cap field. Monetary inputs must be EUR; dollar and pound prompts return a validation message. A club named in the role text can override the club field, and is shown during review.
 
+## Appearance and player strengths
+
+Use the header's Dark mode / Light mode button to switch themes. The first visit follows your system preference; an explicit choice is saved in this browser. The toggle still works when browser storage is blocked, but cannot persist across reloads in that case.
+
+After searching, each selected player has an eight-axis radar chart using the existing league-adjusted percentiles. The solid green profile shows the player, the dashed amber outline shows the recruitment role targets, and an optional dotted blue profile shows another shortlisted player. Use the comparison dropdown to select the second player. Higher values extend farther from the center on a fixed 0–100 scale. Chart area is not an overall-quality score. Expand “View exact percentiles” for a readable table; detailed metric bars remain available. These are illustrative benchmarks, not live DataMB data.
+
 ## What the numbers mean
 
 | Output | Meaning | Limits |

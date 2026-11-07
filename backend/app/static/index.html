@@ -4,11 +4,14 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="Build a recruitment brief, review its constraints, and compare football players using transparent demo analytics.">
   <title>Touchline — Recruitment workspace</title>
+  <script src="/static/theme.js"></script>
+  <script src="/static/radar.js" defer></script>
   <link rel="stylesheet" href="/static/app.css"><script src="/static/app.js" defer></script>
+  <link rel="stylesheet" href="/static/visuals.css">
 </head>
 <body>
   <a class="skip" href="#brief">Skip to recruitment brief</a>
-  <header class="topbar"><div class="shell header-row"><a href="/" class="brand"><span class="crest" aria-hidden="true">T.</span> TOUCHLINE <span class="brand-sub">RECRUITMENT WORKSPACE</span></a><span class="demo-dot">Illustrative demo</span></div></header>
+  <header class="topbar"><div class="shell header-row"><a href="/" class="brand"><span class="crest" aria-hidden="true">T.</span> TOUCHLINE <span class="brand-sub">RECRUITMENT WORKSPACE</span></a><div class="header-actions"><span class="demo-dot">Illustrative demo</span><button id="theme-toggle" class="secondary theme-toggle" type="button" aria-pressed="false" aria-label="Switch to dark mode">☾ Dark mode</button></div></div></header>
   <main class="shell">
     <section class="intro"><div><p class="eyebrow">THE NEXT SIGNING STARTS WITH A CLEAR BRIEF</p><h1>Find the fit.<br><span>Understand the tradeoffs.</span></h1><p class="intro-copy">Turn a football need into a shortlist you can explain. Set your limits, check how we understood them, then compare the players who qualify.</p></div><aside class="pitch-note"><span class="eyebrow">HOW TO USE THIS WORKSPACE</span><ol><li><b>01</b><span><strong>Define the role</strong>Tell us what your team needs.</span></li><li><b>02</b><span><strong>Review the brief</strong>Confirm the exact limits we will enforce.</span></li><li><b>03</b><span><strong>Compare the evidence</strong>Inspect fit, cost, sample size and caveats.</span></li></ol></aside></section>
     <div class="notice"><span aria-hidden="true">ⓘ</span><p><strong>A scouting sandbox, with visible limits.</strong> Player statistics, fees and wages are illustrative 2025/26 benchmarks. This tool uses rules and statistical comparisons, not live scouting feeds or live AI analysis. It does not predict transfer success.</p></div>

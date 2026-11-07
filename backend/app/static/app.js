@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 const money = value => new Intl.NumberFormat('en-IE', {style:'currency', currency:'EUR', maximumFractionDigits:0}).format(value);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const listHTML = items => items.map(item => `<li>${escapeHTML(item)}</li>`).join('');
-let reviewed = null, currentDossier = null, source = null, requestId = 0;
+let reviewed = null, currentDossier = null, source = null, requestId = 0, comparisonId = '';
 
 function showError(message) { $('error').textContent = message; $('error').hidden = false; }
 function clearError() { $('error').hidden = true; $('error').textContent = ''; }
@@ -138,6 +138,7 @@ $('search-button').addEventListener('click', () => {
 
 function renderDossier(dossier) {
   currentDossier = dossier;
+  comparisonId = '';
   $('results').hidden = false;
   const candidates = dossier.top_candidates || [];
   $('results-heading').textContent = candidates.length ? `${candidates.length} ${candidates.length === 1 ? 'player' : 'players'} to inspect` : 'No matching players';
@@ -175,14 +176,22 @@ function selectCandidate(index) {
   const audit = currentDossier.verifications.find(v => v.candidate_id === p.id);
   const sim = currentDossier.impact_simulations.find(s => s.candidate_id === p.id);
   Array.from($('candidate-list').children).forEach((button, i) => button.setAttribute('aria-pressed', String(i === index)));
+  const comparison = currentDossier.top_candidates.find(other => other.player.id === comparisonId && other.player.id !== p.id);
+  const comparisonOptions = currentDossier.top_candidates.filter(other => other.player.id !== p.id);
   const breakdown = c.tactical_breakdown.map(b => `<div class="metric"><div class="metric-label"><span>${escapeHTML(b.metric_name)}</span><span>${b.player_league_adj_pct} / target ${b.target_pct}</span></div><div class="bar"><div class="bar-fill" style="width:${Math.max(0,Math.min(100,b.player_league_adj_pct))}%"></div><span class="target" style="left:${Math.max(0,Math.min(100,b.target_pct))}%"></span></div></div>`).join('');
   const delta = value => `${value > 0 ? '+' : ''}${value.toFixed(1)}`;
   $('candidate-detail').innerHTML = `<div class="detail-header"><div><p class="eyebrow">PLAYER EVIDENCE / #${c.rank}</p><h3>${escapeHTML(p.name)}</h3><p>${escapeHTML(p.club)} · ${escapeHTML(p.league)}<br>${p.age} years · ${escapeHTML(p.preferred_foot)} foot<br>Listed roles: ${escapeHTML([p.primary_position,...p.secondary_positions].join(' / '))}</p></div><span class="audit-badge ${audit?.is_verified ? '' : 'warning'}">${audit?.is_verified ? 'Record checks passed' : 'Review audit flags'}</span></div>
     <dl class="stat-row"><div><dt>Overall fit</dt><dd>${c.fit_score}<small> / 100</small></dd><p>Weighted comparison</p></div><div><dt>Sample reliability</dt><dd>${c.reliability_score}<small> / 100</small></dd><p>${p.raw_metrics.minutes_played.toLocaleString()} league minutes</p></div><div><dt>Estimated fee</dt><dd>${(p.market_value_eur/1e6).toFixed(1)}<small> M EUR</small></dd><p>${money(p.weekly_wage_eur)} per week</p></div><div><dt>Annual book cost</dt><dd>${(c.estimated_annual_cost_eur/1e6).toFixed(2)}<small> M EUR</small></dd><p>Fee ÷ 5 + annual wages</p></div></dl>
+    <section class="detail-section radar-section"><div class="radar-heading"><div><p class="eyebrow">PLAYER STRENGTHS / 0–100</p><h4>See the shape of their game</h4></div><div class="radar-control"><label for="radar-compare">Compare with another player</label><select id="radar-compare" ${comparisonOptions.length ? '' : 'disabled'}><option value="">Role target only</option>${comparisonOptions.map(other => `<option value="${escapeHTML(other.player.id)}" ${other.player.id === comparison?.player.id ? 'selected' : ''}>${escapeHTML(other.player.name)}</option>`).join('')}</select></div></div><div id="radar-content">${renderRadar(c,currentDossier.recruitment_profile,comparison)}</div></section>
     <div class="detail-columns"><section class="detail-section"><h4>Why this player ranks here</h4><ul>${listHTML(c.why_recommended)}</ul><p>Tactical ${c.tactical_fit_score} · Statistical ${c.stat_fit_score} · Financial ${c.financial_fit_score} · Age ${c.age_potential_score}</p></section><section class="detail-section"><h4>What to investigate next</h4><ul>${listHTML(c.risk_factors)}</ul><p>${escapeHTML(c.reliability_summary)}</p><p>Confirm availability, medical history and actual asking price with independent sources.</p></section></div>
     <section class="detail-section"><h4>Tactical evidence against the target</h4><p class="metric-legend">Green bar: league-adjusted percentile. Dark marker: role target. These are heuristic comparisons within the demo data.</p>${breakdown}</section>
     <section class="detail-section"><h4>Stored-record audit</h4>${audit ? `<p><strong>${audit.matched_claim_count} of ${audit.checked_claim_count} raw metric claims match.</strong> Fee cap: ${audit.budget_compliance_verified ? 'passed' : 'failed'}. Wage cap: ${audit.wage_compliance_verified ? 'passed' : 'failed'}.</p>${audit.flagged_caveats.length ? `<ul>${listHTML(audit.flagged_caveats)}</ul>` : '<p>No record mismatches or cap violations found. This does not establish real-world accuracy.</p>'}<details><summary>Inspect checked values</summary><ul>${listHTML(audit.verified_claims)}</ul></details>` : '<p>No audit is available for this candidate.</p>'}</section>
     ${sim ? `<section class="detail-section impact"><h4>Squad impact illustration</h4><p>${sim.baseline_is_fallback ? `No baseline exists for ${escapeHTML(currentDossier.club)}. This illustration uses Arsenal FC as a reference.` : `Reference baseline: ${escapeHTML(sim.baseline_club)}.`} Not a validated prediction.</p><div class="impact-grid"><p>Defense index<strong>${sim.baseline_squad_defense} → ${sim.projected_squad_defense}</strong>Change ${delta(sim.projected_squad_defense-sim.baseline_squad_defense)}</p><p>Progression index<strong>${sim.baseline_squad_progression} → ${sim.projected_squad_progression}</strong>Change ${delta(sim.projected_squad_progression-sim.baseline_squad_progression)}</p></div></section>` : ''}`;
+  $('radar-compare').addEventListener('change', event => {
+    comparisonId = event.target.value;
+    const other = currentDossier.top_candidates.find(item => item.player.id === comparisonId);
+    $('radar-content').innerHTML = renderRadar(c,currentDossier.recruitment_profile,other);
+  });
 }
 $('export-button').addEventListener('click', () => {
   if (!currentDossier) return;
