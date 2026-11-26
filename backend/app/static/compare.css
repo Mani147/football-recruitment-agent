@@ -1,0 +1,38 @@
+.comparison-intro { max-width: 720px; padding: 44px 0 20px; }
+.data-attribution { margin-top: 32px; display: flex; flex-wrap: wrap; align-items: center; gap: 18px; font-size: 11px; color: var(--muted); }
+.data-attribution img { background: #fff; border-radius: 6px; padding: 8px; width: 140px; height: auto; }
+.data-attribution p { flex: 1; min-width: 220px; margin: 0; }
+.comparison-intro h1 { font-size: clamp(32px,4vw,46px); }
+.comparison-intro > p:last-child { color: var(--muted); font-size: 14px; }
+.compare-controls { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; }
+.compare-controls > div { flex: 1; min-width: 230px; }
+.compare-controls label { margin-top: 0; }
+.compare-controls .secondary-choice { display: flex; gap: 9px; align-items: center; }
+.secondary-choice input { width: 18px; height: 18px; accent-color: var(--green); }
+.compare-pickers, .comparison-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.compare-pickers { margin-bottom: 24px; }
+.compare-pickers label { margin-top: 0; }
+.comparison-player h2 { font-size: 25px; }
+.comparison-player > p { color: var(--muted); font-size: 12px; }
+.comparison-player dl { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.comparison-player dt { font-size: 10px; color: var(--muted); }
+.comparison-player dd { margin: 4px 0 0; font-size: 13px; font-weight: 600; }
+.comparison-green { border-top: 3px solid var(--chart-player); }
+.comparison-blue { border-top: 3px solid var(--chart-comparison); }
+.compare-chart, .comparison-raw { margin-top: 24px; }
+.compare-chart .radar-chart { max-width: 700px; }
+.compare-chart .radar-values { margin: 15px auto 0; max-width: 850px; }
+.comparison-raw h2 { font-size: 21px; }
+.comparison-raw table { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: 12px; }
+.comparison-raw th, .comparison-raw td { border-bottom: 1px solid var(--line); padding: 12px 8px; text-align: right; }
+.comparison-raw th:first-child { text-align: left; }
+.comparison-raw tbody th { font-weight: 500; }
+@media (max-width: 700px) {
+  .compare-pickers, .comparison-cards { grid-template-columns: 1fr; gap: 18px; }
+  .compare-chart { padding: 20px 12px; }
+  .compare-controls { gap: 18px; }
+}
+
+.scope-controls { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; width:100%; }
+.compare-controls > .scope-controls { flex-basis:100%; min-width:0; }
+@media(max-width:500px) { .scope-controls { grid-template-columns:1fr; } }

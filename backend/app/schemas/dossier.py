@@ -1,4 +1,4 @@
-﻿from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any
 from pydantic import BaseModel, Field
 from .player import PlayerProfile, NormalizedPlayerPercentiles
 from .recruitment import RecruitmentProfile
@@ -43,10 +43,15 @@ class CriticVerificationReport(BaseModel):
     flagged_caveats: List[str] = []
     budget_compliance_verified: bool = True
     sample_size_flag: Optional[str] = None
+    wage_compliance_verified: bool = False
+    checked_claim_count: int = 0
+    matched_claim_count: int = 0
 
 class SquadImpactProxy(BaseModel):
     candidate_id: str
     candidate_name: str
+    baseline_club: str = "Arsenal FC"
+    baseline_is_fallback: bool = False
     baseline_squad_defense: float = 72.0
     projected_squad_defense: float = 78.5
     baseline_squad_progression: float = 74.0
@@ -63,4 +68,13 @@ class FinalRecruitmentDossier(BaseModel):
     verifications: List[CriticVerificationReport]
     impact_simulations: List[SquadImpactProxy]
     director_executive_summary: str
+    status: str = "complete"
+    eligible_candidate_count: int = 0
+    dataset_notice: str = "Illustrative 2025/26 demo data. Fees, wages and performance metrics are estimates, not live scouting feeds."
+    limitations: List[str] = [
+        "Rule-based text parsing and TF-IDF narrative retrieval; no live LLM calls.",
+        "Fit is a weighted comparison, not a probability of transfer success.",
+        "Reliability describes the stored sample, not independent data accuracy.",
+        "Squad impact is an unvalidated heuristic using an Arsenal baseline; it is not a forecast."
+    ]
     created_at_iso: str

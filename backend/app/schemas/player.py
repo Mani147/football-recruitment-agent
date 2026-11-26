@@ -1,4 +1,4 @@
-﻿from typing import List, Optional
+from typing import List, Optional
 from pydantic import BaseModel, Field
 from backend.app.schemas.recruitment import POSITION_GROUPS
 
@@ -56,8 +56,13 @@ def position_matches(player: PlayerProfile, position_family: str, specific_pos: 
     """
     player_positions = [player.primary_position.upper()] + [p.upper() for p in player.secondary_positions]
     
-    if specific_pos and specific_pos.upper() in player_positions:
-        return True
-        
-    allowed_positions = POSITION_GROUPS.get(position_family.upper(), [position_family.upper()])
+    family = position_family.upper()
+    specific = (specific_pos or "").upper()
+    # Enforce sided requests; generic FB/WINGER continue to allow either side.
+    if family in ("LB", "RB"):
+        allowed_positions = POSITION_GROUPS[family]
+    elif family == "WINGER" and specific in ("LW", "RW"):
+        allowed_positions = [specific]
+    else:
+        allowed_positions = POSITION_GROUPS.get(family, [family])
     return any(p in allowed_positions for p in player_positions)
