@@ -1,0 +1,45 @@
+.scout-hero {
+  display:grid; grid-template-columns:1fr minmax(300px,.85fr); align-items:center;
+  gap:clamp(24px,5vw,76px); background:#112f27; color:#fbf9e9; border-radius:20px;
+  margin:20px 0; padding:clamp(24px,4vw,54px);
+}
+.hero-copy h1 {font-size:clamp(40px,5vw,72px); line-height:.99; letter-spacing:-.055em; color:inherit; margin:0}
+.hero-copy em {font-family:Georgia,serif; font-weight:normal; color:#d7ed99}
+.hero-copy p {max-width:48ch; font-size:15px; line-height:1.55; margin:19px 0 0; color:#e2ebd9}
+.board-title {font-size:13px; color:#ecf3db; font-weight:600; margin:0 0 10px}
+.tactics-field {position:relative; aspect-ratio:2.1; isolation:isolate; border:1px solid #8bb493; border-radius:6px; background:repeating-linear-gradient(90deg,#214c3b 0 12.5%,#28553f 12.5% 25%)}
+.field-lines {position:absolute; inset:7px; border:1px solid #80a687; background:linear-gradient(90deg,transparent 49.8%,#80a687 50%,transparent 50.4%)}
+.field-lines i,.field-lines::before,.field-lines::after {content:''; position:absolute; top:50%; transform:translateY(-50%); border:1px solid #80a687}
+.field-lines i {width:23%; aspect-ratio:1; left:38.5%; border-radius:50%}
+.field-lines::before,.field-lines::after {width:13%; height:55%}
+.field-lines::before {left:-1px}.field-lines::after {right:-1px}
+.role-pin {position:absolute; left:var(--x); top:var(--y); transform:translate(-50%,-50%); border:0; background:none; color:#fff; display:grid; justify-items:center; gap:2px; padding:3px; cursor:pointer}
+.role-pin b {width:30px; height:30px; display:grid; place-items:center; color:#143228; background:#edf3dc; border:2px solid #102e21; border-radius:50%; font-size:11px; box-shadow:0 2px 5px #132e2490}
+.role-pin span {font-size:10px; font-weight:600; padding:0 3px; background:#173a2e; border-radius:2px}
+.role-pin:hover b,.role-pin[aria-pressed=true] b {background:#daff77; outline:2px solid #d2ecac}
+.role-pin:focus-visible {outline:2px solid white; border-radius:4px}
+#research-form {display:grid; grid-template-columns:1.2fr 1fr; gap:12px 32px}
+.brief-panel h2 {margin:0 0 10px}
+.brief-writing textarea {min-height:102px; font-size:15px; line-height:1.5}
+.brief-filters .scope-controls {gap:12px}
+.brief-panel .full {grid-column:1/-1;width:fit-content;min-height:44px;margin-top:4px}
+#research-results:not([hidden]) {display:grid; grid-template-columns:minmax(220px,.55fr) minmax(0,1.45fr);gap:16px;align-items:start}
+.scope-note p {color:var(--muted);font-size:13px;margin:12px 0}
+.evidence-grid {display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;align-items:start}
+.evidence-grid .panel {margin:0 0 16px}
+@media(max-width:760px) {
+  .scout-hero,#research-form,#research-results:not([hidden]),.evidence-grid {grid-template-columns:minmax(0,1fr)}
+  .scout-hero {padding:20px; gap:20px}
+  .tactics-field {aspect-ratio:2;min-height:142px}
+  .role-pin span {font-size:9px}
+  .brief-panel .full {width:100%}
+}
+.compare-pickers > div, .comparison-cards > article, .compare-controls > div,
+.evidence-grid > section, #research-detail, .brief-writing, .brief-filters { min-width:0; }
+select { max-width:100%; }
+@media(max-width:500px) {
+  .compare-controls > div { width:100%; flex-basis:100%; }
+  .compare-controls select { min-width:0; }
+  .comparison-player dd, .data-attribution { overflow-wrap:anywhere; }
+}
+.board-wrap, .tactics-field { min-width:0; }.tactics-field { width:100%; }
